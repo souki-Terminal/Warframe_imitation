@@ -2315,6 +2315,7 @@ MonoBehaviour:
   targetOffset: {x: 0, y: 1.2, z: 0}
   lockOnRange: 15
   lockOnHeightOffset: -1.5
+  minLockOnDistance: 5
 --- !u!1 &983707065
 GameObject:
   m_ObjectHideFlags: 0

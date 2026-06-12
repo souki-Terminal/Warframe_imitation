@@ -12,8 +12,19 @@ public class CameraController : MonoBehaviour
 
     [Header("Z注目（ロックオン）設定")]
     public float lockOnRange = 15.0f;   
-    // ★追加：注目する敵の「高さ（Y軸）」をUnity側で調整できるようにする
     public float lockOnHeightOffset = 1.0f; 
+    public float lockOnCameraHeightOffset = 0.5f; 
+    
+    // ★追加：BotW風の「肩越し視点」にするための横ずらし
+    [Tooltip("カメラをプレイヤーの真後ろから右にどれくらいずらすか")]
+    public float lockOnSideOffset = 1.2f; 
+    
+    public float lockOnTrackingSpeed = 20.0f;
+
+    [Header("動的ズーム設定")]
+    // ★変更：前回の 1.5f だと近すぎるため、最小距離を広げました
+    [Tooltip("カメラがプレイヤーに近づきすぎないための最小距離")]
+    public float minCameraDistance = 2.5f;
 
     private float currentX = 0.0f;
     private float currentY = 0.0f;
@@ -32,8 +43,11 @@ public class CameraController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(1))
         {
-            if (lockOnTarget == null) FindNearestEnemy();
-            else lockOnTarget = null; 
+            FindNearestEnemy();
+        }
+        else if (Input.GetMouseButtonUp(1))
+        {
+            lockOnTarget = null;
         }
 
         if (lockOnTarget == null)
@@ -47,7 +61,7 @@ public class CameraController : MonoBehaviour
     void LateUpdate()
     {
         if (player == null) return;
-        Vector3 lookPosition = player.transform.position + targetOffset;
+        Vector3 playerLookPos = player.transform.position + targetOffset;
 
         if (lockOnTarget != null)
         {
@@ -57,15 +71,44 @@ public class CameraController : MonoBehaviour
                 return;
             }
 
-            // ★修正：敵の足元ではなく、設定した高さ（lockOnHeightOffset）を足した位置を目標にする
-            Vector3 targetPos = lockOnTarget.position + new Vector3(0, lockOnHeightOffset, 0);
+            Vector3 enemyTargetPos = lockOnTarget.position + new Vector3(0, lockOnHeightOffset, 0);
 
-            Vector3 dirToEnemy = (targetPos - player.transform.position).normalized;
-            Vector3 desiredPosition = lookPosition - (dirToEnemy * distance);
-            
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * 10f);
-            Quaternion lookRotation = Quaternion.LookRotation(targetPos - transform.position);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 10f);
+            // プレイヤーから敵への方向ベクトル（前方向）を計算
+            Vector3 forwardDir = new Vector3(enemyTargetPos.x - playerLookPos.x, 0, enemyTargetPos.z - playerLookPos.z);
+            float distToEnemy = forwardDir.magnitude;
+
+            if (distToEnemy < 0.01f)
+            {
+                forwardDir = player.transform.forward;
+            }
+            else
+            {
+                forwardDir.Normalize();
+            }
+
+            // カメラを置く基準となる「後ろ方向」と「右方向」を計算
+            Vector3 backDir = -forwardDir;
+            // 外積（Cross）を使って、前方向に対して直角な右方向のベクトルを作る
+            Vector3 rightDir = Vector3.Cross(Vector3.up, forwardDir).normalized;
+
+            // ★変更箇所：ズームを少しマイルドにし、極端に背中に張り付かないようにする
+            float currentCameraDist = distance;
+            if (distToEnemy < distance)
+            {
+                // 近づく割合を半分にして、一定以上の距離（minCameraDistance）は保つ
+                currentCameraDist = Mathf.Max(minCameraDistance, (distToEnemy + distance) * 0.5f);
+            }
+
+            // ★変更箇所：プレイヤーの背後（backDir）から、さらに右側（rightDir）にずらしてカメラを配置
+            Vector3 desiredPosition = playerLookPos + (backDir * currentCameraDist) + (rightDir * lockOnSideOffset);
+            desiredPosition.y = playerLookPos.y + lockOnCameraHeightOffset;
+
+            transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * lockOnTrackingSpeed);
+
+            // カメラの視点は今まで通り「プレイヤーと敵のちょうど真ん中」を見つめる
+            Vector3 centerPoint = Vector3.Lerp(playerLookPos, enemyTargetPos, 0.5f);
+            Quaternion lookRotation = Quaternion.LookRotation(centerPoint - transform.position);
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * lockOnTrackingSpeed);
 
             currentX = transform.rotation.eulerAngles.y;
             currentY = transform.rotation.eulerAngles.x;
@@ -76,8 +119,8 @@ public class CameraController : MonoBehaviour
             Vector3 dir = new Vector3(0, 0, -distance);
             Quaternion rotation = Quaternion.Euler(currentY, currentX, 0);
             
-            transform.position = lookPosition + rotation * dir;
-            transform.LookAt(lookPosition);
+            transform.position = Vector3.Lerp(transform.position, playerLookPos + rotation * dir, Time.deltaTime * 15f);
+            transform.LookAt(playerLookPos);
         }
     }
 
