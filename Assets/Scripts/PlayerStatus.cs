@@ -24,20 +24,27 @@ public class PlayerStatus : MonoBehaviour
         currentHP -= damage;
         UpdateUI();
 
+        // アニメーターを取得
+        Animator anim = GetComponentInChildren<Animator>();
+        if (anim == null) anim = GetComponent<Animator>();
+
         if (currentHP <= 0)
         {
             currentHP = 0; // マイナス表示を防ぐ
             UpdateUI();
 
-            // ★ここでGameManagerに「死んだよ！」と報告する（これを忘れると画面が出ません）
             if (GameManager.instance != null)
             {
                 GameManager.instance.OnPlayerDied();
             }
 
-            // 死亡アニメーション（HitやDamageなど、設定した名前に合わせてください）
-            Animator anim = GetComponent<Animator>();
-            if (anim != null) anim.SetTrigger("Damage"); 
+            // 死亡アニメーション（Dieなどに設定している場合は名前に合わせてください）
+            if (anim != null) anim.SetTrigger("Die"); 
+        }
+        else
+        {
+            // ★追加：まだ生きている場合はダメージリアクションを再生する
+            if (anim != null) anim.SetTrigger("Damage");
         }
     }
 

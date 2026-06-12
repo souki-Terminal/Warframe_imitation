@@ -8,17 +8,15 @@ public class Damager : MonoBehaviour
     void Start()
     {
         myCollider = GetComponent<Collider>();
-        if (myCollider != null) myCollider.enabled = false; // 最初はオフ
+        if (myCollider != null) myCollider.enabled = false; 
     }
 
     void Update()
     {
-        // ★応急処置：左クリック(0)を押している一瞬だけ、剣の当たり判定を強制的にONにする
-        // （※もし別のキーで攻撃している場合は Input.GetKeyDown(KeyCode.Z) などに変更してください）
         if (Input.GetMouseButtonDown(0))
         {
             if (myCollider != null) myCollider.enabled = true;
-            Invoke("AttackEnd", 0.5f); // 0.5秒後に自動でOFFにする
+            Invoke("AttackEnd", 0.5f); 
         }
     }
 
@@ -29,19 +27,12 @@ public class Damager : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // ▼敵へのダメージ判定のみ残す（自分や味方へのダメージ処理を削除）
         EnemyStatus enemy = other.GetComponentInParent<EnemyStatus>();
         if (enemy != null)
         {
             enemy.TakeDamage(damage);
             Debug.Log($"敵に {damage} のダメージ！");
-            return;
-        }
-
-        PlayerStatus player = other.GetComponentInParent<PlayerStatus>();
-        if (player != null)
-        {
-            player.TakeDamage(damage); 
-            Debug.Log($"プレイヤーが {damage} のダメージを受けた！");
         }
     }
 }

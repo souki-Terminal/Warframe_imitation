@@ -19,11 +19,19 @@ public class Enemy : MonoBehaviour
 
         if (goal == null) goal = GameObject.Find("unitychan"); 
         if (agent == null) Debug.LogError($"{gameObject.name} に NavMeshAgent がありません！");
+        else 
+        {
+            // ★追加：プレイヤーのどれくらい手前で移動を止めるか（モデルの大きさに合わせて 1.0 ～ 1.5 で調整）
+            agent.stoppingDistance = 1.2f; 
+        }
     }
 
     void Update()
     {
         if (goal == null || agent == null) return;
+
+        // ★追加：目的地を常にプレイヤーの位置にする
+        agent.SetDestination(goal.transform.position);
 
         float distance = Vector3.Distance(transform.position, goal.transform.position);
 
@@ -43,7 +51,5 @@ public class Enemy : MonoBehaviour
         {
             core.SetAttack(false); // 範囲外ならOFF
         }
-        
-        agent.destination = goal.transform.position;
     }
 }

@@ -4,32 +4,53 @@ using UnityEngine;
 public class PlayerControllerReal : MonoBehaviour
 {
     private CharacterCore core;
+    private Transform cameraTransform;
 
     void Start()
     {
         core = GetComponent<CharacterCore>();
+        // メインカメラを取得しておく
+        if (Camera.main != null) cameraTransform = Camera.main.transform;
     }
 
     void Update()
     {
-        // 移動入力
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
-        Vector3 inputDir = new Vector3(x, 0, z);
+
+        Vector3 inputDir = Vector3.zero;
+
+        if (cameraTransform != null)
+        {
+            // ★カメラが向いている方向を基準にして、前後左右を決める
+            Vector3 camForward = cameraTransform.forward;
+            Vector3 camRight = cameraTransform.right;
+            
+            // 上下方向（Y軸）の傾きを無視して、水平な地面の移動にする
+            camForward.y = 0;
+            camRight.y = 0;
+            camForward.Normalize();
+            camRight.Normalize();
+
+            // カメラの向きに合わせて入力を合成する
+            inputDir = (camForward * z) + (camRight * x);
+        }
+        else
+        {
+            inputDir = new Vector3(x, 0, z);
+        }
+
         bool isRunning = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-        
         core.SetMovement(inputDir, isRunning);
 
-        // 攻撃入力 (BoolとTriggerの両方を送る)
         bool isHolding = Input.GetMouseButton(0);
-        core.SetAttack(isHolding); // 押しっぱなし情報を送信
+        core.SetAttack(isHolding);
 
         if (Input.GetMouseButtonDown(0))
         {
-            core.TriggerAttack(); // クリックした瞬間の情報を送信
+            core.TriggerAttack();
         }
 
-        // ジャンプ入力
         if (Input.GetKeyDown(KeyCode.Space))
         {
             core.TriggerJump();

@@ -37,30 +37,29 @@ public class EnemyStatus : MonoBehaviour
         currentHP -= damage;
         UpdateUI();
 
+        // アニメーターを取得（モデルが子オブジェクトにある場合も考慮）
+        Animator anim = GetComponentInChildren<Animator>();
+        if (anim == null) anim = GetComponent<Animator>();
+
         if (currentHP <= 0)
         {
             currentHP = 0; 
             UpdateUI();
 
-            // ★ここで確実にカウントを減らす！
             if (GameManager.instance != null) GameManager.instance.RemoveEnemyCount();
 
-            // 移動停止
             CharacterCore charCore = GetComponent<CharacterCore>();
             if (charCore != null) charCore.enabled = false;
 
-            // 死亡アニメーション
-            Animator anim = GetComponent<Animator>();
+            // 死亡時は "Die" トリガーを呼ぶように修正（元はDamageになっていました）
             if (anim != null) anim.SetTrigger("Die"); 
 
-            // 1秒後に消去
             Destroy(gameObject, 1.0f);
         }
         else
         {
-            Animator anim = GetComponent<Animator>();
-            // ↓ アニメーションがない間は、頭に // を付けて一時的に無効化しておく
-            // if (anim != null) anim.SetTrigger("Damage"); 
+            // ★修正：まだ生きている場合はダメージリアクションを再生する
+            if (anim != null) anim.SetTrigger("Damage"); 
         }
     }
 

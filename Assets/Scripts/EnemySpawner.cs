@@ -7,6 +7,10 @@ public class EnemySpawner : MonoBehaviour
     [Header("ゲーム開始から出現するまでの時間（秒）")]
     public float spawnStartTime = 5.0f;
 
+    // ★追加：敵が1体ずつ出現する間隔（EnemyActivate.csにあったものを移植）
+    [Header("敵が1体ずつ出現する間隔（秒）")]
+    public float spawnInterval = 3.0f;
+
     [Header("出現時のエフェクトのプレハブ")]
     public GameObject spawnEffectPrefab; 
 
@@ -40,6 +44,9 @@ public class EnemySpawner : MonoBehaviour
             if (enemy != null)
             {
                 StartCoroutine(SpawnIndividualEnemy(enemy));
+                
+                // ★ここが重要：1体の出現処理を開始したら、指定した秒数だけ待つ！
+                yield return new WaitForSeconds(spawnInterval);
             }
         }
         // 全員スポーンする処理が終わったフラグを立てる
@@ -50,6 +57,7 @@ public class EnemySpawner : MonoBehaviour
     {
         if (spawnEffectPrefab != null)
         {
+            // ここで生成されるクローンはエフェクトだけです
             GameObject effect = Instantiate(spawnEffectPrefab, enemy.transform.position, Quaternion.identity);
             Destroy(effect, 3.0f); 
         }
@@ -66,17 +74,14 @@ public class EnemySpawner : MonoBehaviour
 
     void Update()
     {
-        // まだ全員出現しきっていない、または既に報酬を渡したなら何もしない
         if (!allSpawned || buffApplied) return;
 
-        // 生きている（まだ消滅していない）敵の数を数える
         int aliveCount = 0;
         foreach (GameObject enemy in enemyGroup)
         {
             if (enemy != null) aliveCount++;
         }
 
-        // 生きている敵が0になったら報酬を与える
         if (aliveCount == 0)
         {
             buffApplied = true;
