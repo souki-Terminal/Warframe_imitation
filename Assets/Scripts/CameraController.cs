@@ -15,32 +15,42 @@ public class CameraController : MonoBehaviour
     public float lockOnHeightOffset = 1.0f; 
     public float lockOnCameraHeightOffset = 0.5f; 
     
-    // ★追加：BotW風の「肩越し視点」にするための横ずらし
     [Tooltip("カメラをプレイヤーの真後ろから右にどれくらいずらすか")]
     public float lockOnSideOffset = 1.2f; 
+    
+    [Tooltip("プレイヤーが左右に動いたとき、どれくらい画面端に寄せるか")]
+    public float sideTrackingIntensity = 0.5f; 
     
     public float lockOnTrackingSpeed = 20.0f;
 
     [Header("動的ズーム設定")]
-    // ★変更：前回の 1.5f だと近すぎるため、最小距離を広げました
     [Tooltip("カメラがプレイヤーに近づきすぎないための最小距離")]
     public float minCameraDistance = 2.5f;
 
     private float currentX = 0.0f;
     private float currentY = 0.0f;
     private Transform lockOnTarget;     
+    private Vector3 smoothedPlayerPos;
 
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        
+        // 初期位置の同期
+        if (player != null)
+        {
+            smoothedPlayerPos = player.transform.position + targetOffset;
+        }
     }
 
     void Update()
     {
+        // マウス操作の切り替え
         if (Input.GetKeyDown(KeyCode.Escape)) Cursor.lockState = CursorLockMode.None;
         if (Input.GetMouseButtonDown(0) && lockOnTarget == null) Cursor.lockState = CursorLockMode.Locked;
 
+        // ロックオンのオンオフ
         if (Input.GetMouseButtonDown(1))
         {
             FindNearestEnemy();
@@ -50,6 +60,7 @@ public class CameraController : MonoBehaviour
             lockOnTarget = null;
         }
 
+        // 非ロックオン時の手動カメラ回転計算
         if (lockOnTarget == null)
         {
             currentX += Input.GetAxis("Mouse X") * sensitivity;
@@ -61,10 +72,14 @@ public class CameraController : MonoBehaviour
     void LateUpdate()
     {
         if (player == null) return;
-        Vector3 playerLookPos = player.transform.position + targetOffset;
+        
+        // プレイヤー位置の補間（カメラのガタつき防止）
+        smoothedPlayerPos = Vector3.Lerp(smoothedPlayerPos, player.transform.position + targetOffset, Time.deltaTime * 15f);
+        Vector3 playerLookPos = smoothedPlayerPos;
 
         if (lockOnTarget != null)
         {
+            // 敵が消滅した際の処理
             if (!lockOnTarget.gameObject.activeInHierarchy)
             {
                 lockOnTarget = null;
@@ -73,49 +88,26 @@ public class CameraController : MonoBehaviour
 
             Vector3 enemyTargetPos = lockOnTarget.position + new Vector3(0, lockOnHeightOffset, 0);
 
-            // プレイヤーから敵への方向ベクトル（前方向）を計算
-            Vector3 forwardDir = new Vector3(enemyTargetPos.x - playerLookPos.x, 0, enemyTargetPos.z - playerLookPos.z);
-            float distToEnemy = forwardDir.magnitude;
+            // 1. プレイヤーの左右移動に基づくオフセット計算
+            // プレイヤーが「右」にいれば画面右へ、「左」にいれば画面左へ
+            float horizontalOffset = Vector3.Dot(player.transform.right, (player.transform.position - transform.position).normalized) * sideTrackingIntensity;
 
-            if (distToEnemy < 0.01f)
-            {
-                forwardDir = player.transform.forward;
-            }
-            else
-            {
-                forwardDir.Normalize();
-            }
+            // 2. 注視点の計算（敵とプレイヤーの中間点 ＋ 左右オフセット）
+            Vector3 targetLookAt = Vector3.Lerp(playerLookPos, enemyTargetPos, 0.5f);
+            targetLookAt += player.transform.right * horizontalOffset;
 
-            // カメラを置く基準となる「後ろ方向」と「右方向」を計算
-            Vector3 backDir = -forwardDir;
-            // 外積（Cross）を使って、前方向に対して直角な右方向のベクトルを作る
-            Vector3 rightDir = Vector3.Cross(Vector3.up, forwardDir).normalized;
-
-            // ★変更箇所：ズームを少しマイルドにし、極端に背中に張り付かないようにする
-            float currentCameraDist = distance;
-            if (distToEnemy < distance)
-            {
-                // 近づく割合を半分にして、一定以上の距離（minCameraDistance）は保つ
-                currentCameraDist = Mathf.Max(minCameraDistance, (distToEnemy + distance) * 0.5f);
-            }
-
-            // ★変更箇所：プレイヤーの背後（backDir）から、さらに右側（rightDir）にずらしてカメラを配置
-            Vector3 desiredPosition = playerLookPos + (backDir * currentCameraDist) + (rightDir * lockOnSideOffset);
-            desiredPosition.y = playerLookPos.y + lockOnCameraHeightOffset;
-
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * lockOnTrackingSpeed);
-
-            // カメラの視点は今まで通り「プレイヤーと敵のちょうど真ん中」を見つめる
-            Vector3 centerPoint = Vector3.Lerp(playerLookPos, enemyTargetPos, 0.5f);
-            Quaternion lookRotation = Quaternion.LookRotation(centerPoint - transform.position);
+            // 3. カメラの回転（ターゲットを注視）
+            Quaternion lookRotation = Quaternion.LookRotation(targetLookAt - transform.position);
             transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * lockOnTrackingSpeed);
 
-            currentX = transform.rotation.eulerAngles.y;
-            currentY = transform.rotation.eulerAngles.x;
-            if (currentY > 180) currentY -= 360;
+            // 4. カメラ位置（敵の周りを維持）
+            Vector3 dirToEnemy = (enemyTargetPos - playerLookPos).normalized;
+            Vector3 cameraPosition = playerLookPos - (dirToEnemy * distance) + Vector3.up * lockOnCameraHeightOffset;
+            transform.position = Vector3.Lerp(transform.position, cameraPosition, Time.deltaTime * lockOnTrackingSpeed);
         }
         else
         {
+            // 非ロックオン時の追従処理
             Vector3 dir = new Vector3(0, 0, -distance);
             Quaternion rotation = Quaternion.Euler(currentY, currentX, 0);
             
@@ -126,6 +118,7 @@ public class CameraController : MonoBehaviour
 
     void FindNearestEnemy()
     {
+        // 現在シーン内の敵を取得
         EnemyStatus[] enemies = FindObjectsOfType<EnemyStatus>();
         float nearestDist = lockOnRange;
         Transform nearestObj = null;
