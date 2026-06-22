@@ -9,12 +9,58 @@ public class TitleManager : MonoBehaviour
 
     void Start()
     {
-        // シーン開始時にデフォルトのボタンを選択状態にする
+        StartCoroutine(SelectDefaultButtonRoutine());
+    }
+
+    private System.Collections.IEnumerator SelectDefaultButtonRoutine()
+    {
+        // EventSystem の存在を確認・自動生成
+        EnsureEventSystemExists();
+
+        // 画面内のボタンの色を調整してハイライトを明確にする
+        AdjustButtonColors();
+
+        // 初期化待ちのため1フレーム待機
+        yield return null;
+
         SelectDefaultButton();
+    }
+
+    private void EnsureEventSystemExists()
+    {
+        if (EventSystem.current == null)
+        {
+            var existing = FindFirstObjectByType<EventSystem>();
+            if (existing == null)
+            {
+                GameObject go = new GameObject("EventSystem_AutoCreated");
+                go.AddComponent<EventSystem>();
+#if ENABLE_INPUT_SYSTEM
+                go.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+#else
+                go.AddComponent<StandaloneInputModule>();
+#endif
+            }
+        }
+    }
+
+    private void AdjustButtonColors()
+    {
+        Button[] buttons = FindObjectsByType<Button>(FindObjectsSortMode.None);
+        foreach (var button in buttons)
+        {
+            var colors = button.colors;
+            // 選択時・ハイライト時がはっきりわかるように鮮やかな色に設定する
+            colors.selectedColor = new Color(0.7f, 0.85f, 1f, 1f);   // 水色
+            colors.highlightedColor = new Color(0.8f, 0.9f, 1f, 1f); // 少し明るい水色
+            button.colors = colors;
+        }
     }
 
     void Update()
     {
+        EnsureEventSystemExists();
+
         if (EventSystem.current == null) return;
 
         // 1. マウスクリック等で選択が解除された場合、十字キー・矢印キー入力時に再選択する
