@@ -5,12 +5,17 @@ public class PlayerControllerReal : MonoBehaviour
 {
     private CharacterCore core;
     private Transform cameraTransform;
+    private CameraController cameraController;
 
     void Start()
     {
         core = GetComponent<CharacterCore>();
         // メインカメラを取得しておく
-        if (Camera.main != null) cameraTransform = Camera.main.transform;
+        if (Camera.main != null)
+        {
+            cameraTransform = Camera.main.transform;
+            cameraController = cameraTransform.GetComponent<CameraController>();
+        }
     }
 
     void Update()
@@ -38,6 +43,15 @@ public class PlayerControllerReal : MonoBehaviour
         else
         {
             inputDir = new Vector3(x, 0, z);
+        }
+
+        if (cameraController != null)
+        {
+            core.SetLockOnTarget(cameraController.LockOnTarget);
+        }
+        else
+        {
+            core.SetLockOnTarget(null);
         }
 
         bool isRunning = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);

@@ -16,6 +16,7 @@ public class CharacterCore : MonoBehaviour
     private bool isHoldingAttack;   
     private bool isAttackTriggered; 
     private bool isJumpTriggered;
+    private Transform lockOnTarget;
 
     private bool hasIsHoldingAttack;
     private bool hasAttackTrigger;
@@ -118,25 +119,43 @@ public class CharacterCore : MonoBehaviour
         {
             if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
         }
-        else if (isAttackingState)
-        {
-            if (moveAmount > 0.1f && rb != null)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(inputDirection);
-                rb.rotation = Quaternion.Slerp(rb.rotation, targetRot, Time.deltaTime * 10f);
-            }
-        }
         else
         {
-            if (moveAmount > 0.1f && rb != null)
+            // プレイヤーの向き制御（ロックオン中は敵の方向、それ以外は移動入力の方向）
+            if (lockOnTarget != null)
             {
-                Quaternion targetRot = Quaternion.LookRotation(inputDirection);
-                rb.rotation = Quaternion.Slerp(rb.rotation, targetRot, Time.deltaTime * 10f);
-                rb.linearVelocity = new Vector3(inputDirection.normalized.x * currentSpeed, rb.linearVelocity.y, inputDirection.normalized.z * currentSpeed);
+                Vector3 targetDirection = lockOnTarget.position - transform.position;
+                targetDirection.y = 0; // 高低差による体の傾きを防ぐ
+                if (targetDirection.sqrMagnitude > 0.001f && rb != null)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(targetDirection);
+                    rb.rotation = Quaternion.Slerp(rb.rotation, targetRot, Time.deltaTime * 10f);
+                }
             }
             else
             {
-                if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+                if (moveAmount > 0.1f && rb != null)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(inputDirection);
+                    rb.rotation = Quaternion.Slerp(rb.rotation, targetRot, Time.deltaTime * 10f);
+                }
+            }
+
+            // プレイヤーの移動速度制御
+            if (isAttackingState)
+            {
+                // 攻撃中の移動処理（デフォルトでは移動入力があれば回転のみを行うが、速度は変更しない）
+            }
+            else
+            {
+                if (moveAmount > 0.1f && rb != null)
+                {
+                    rb.linearVelocity = new Vector3(inputDirection.normalized.x * currentSpeed, rb.linearVelocity.y, inputDirection.normalized.z * currentSpeed);
+                }
+                else
+                {
+                    if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+                }
             }
         }
     }
@@ -154,4 +173,5 @@ public class CharacterCore : MonoBehaviour
     public void TriggerJump() { isJumpTriggered = true; }
     public void SetAttack(bool attack) { isHoldingAttack = attack; } 
     public void TriggerAttack() { isAttackTriggered = true; } 
+    public void SetLockOnTarget(Transform target) { lockOnTarget = target; }
 }

@@ -30,6 +30,7 @@ public class CameraController : MonoBehaviour
     private float currentX = 0.0f;
     private float currentY = 0.0f;
     private Transform lockOnTarget;     
+    public Transform LockOnTarget => lockOnTarget;
     private Vector3 smoothedPlayerPos;
 
     void Start()
@@ -101,7 +102,11 @@ public class CameraController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * lockOnTrackingSpeed);
 
             // 4. カメラ位置（敵の周りを維持）
-            Vector3 dirToEnemy = (enemyTargetPos - playerLookPos).normalized;
+            // ※敵との高低差によるカメラの上下動や急な見下ろしを防ぐため、水平方向のベクトルとして計算します。
+            Vector3 dirToEnemy = (enemyTargetPos - playerLookPos);
+            dirToEnemy.y = 0;
+            dirToEnemy.Normalize();
+
             Vector3 cameraPosition = playerLookPos - (dirToEnemy * distance) + Vector3.up * lockOnCameraHeightOffset;
             transform.position = Vector3.Lerp(transform.position, cameraPosition, Time.deltaTime * lockOnTrackingSpeed);
         }
