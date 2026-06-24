@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro; // ★数字テキストを扱うために必要
 
@@ -7,19 +7,38 @@ public class PlayerStatus : MonoBehaviour
     public int maxHP = 100;
     public int currentHP;
 
+    [Header("ノックバック")]
+    public float knockbackForce = 5.0f;
+    public float knockbackUpForce = 1.0f;
+
     [Header("UI設定")]
     public Slider hpSlider;
     public TextMeshProUGUI hpText; // ★追加：HPの数値を表示する枠
 
+    private Rigidbody rb;
+    private CharacterCore core;
+
     void Start()
     {
         currentHP = maxHP;
+        rb = GetComponent<Rigidbody>();
+        core = GetComponent<CharacterCore>();
         UpdateUI();
     }
 
     public void TakeDamage(int damage)
     {
+        TakeDamage(damage, Vector3.zero);
+    }
+
+    public void TakeDamage(int damage, Vector3 knockbackDirection)
+    {
         if (currentHP <= 0) return;
+
+        if (knockbackDirection.sqrMagnitude > 0.001f)
+        {
+            ApplyKnockback(knockbackDirection);
+        }
 
         currentHP -= damage;
         UpdateUI();
@@ -45,6 +64,21 @@ public class PlayerStatus : MonoBehaviour
         {
             // ★追加：まだ生きている場合はダメージリアクションを再生する
             if (anim != null) anim.SetTrigger("Damage");
+        }
+    }
+
+    private void ApplyKnockback(Vector3 direction)
+    {
+        if (rb == null) return;
+
+        direction.y = 0;
+        if (direction.sqrMagnitude <= 0.001f) return;
+
+        rb.linearVelocity = new Vector3(direction.normalized.x * knockbackForce, knockbackUpForce, direction.normalized.z * knockbackForce);
+
+        if (core != null)
+        {
+            core.TriggerKnockback(0.2f); // 0.2秒間ノックバックの物理移動を優先し、通常の入力や摩擦減速をバイパスする
         }
     }
 

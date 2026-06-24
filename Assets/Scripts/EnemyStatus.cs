@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI; // スライダー(HPバー)を使うために必要
 
 [RequireComponent(typeof(DeathAction))]
@@ -8,16 +8,24 @@ public class EnemyStatus : MonoBehaviour
     public int maxHP = 50;
     private int currentHP;
 
+    [Header("ノックバック")]
+    public float knockbackForce = 3.0f;
+    public float knockbackUpForce = 0.8f;
+
     [Header("UI設定")]
     [Tooltip("敵の頭上に出すHPスライダー")]
     public Slider hpSlider;
 
     private DeathAction deathAction;
+    private Rigidbody rb;
+    private CharacterCore core;
 
     void Start()
     {
         currentHP = maxHP;
         deathAction = GetComponent<DeathAction>();
+        rb = GetComponent<Rigidbody>();
+        core = GetComponent<CharacterCore>();
 
         // HPバーの初期設定
         if (hpSlider != null)
@@ -32,7 +40,17 @@ public class EnemyStatus : MonoBehaviour
 
    public void TakeDamage(int damage)
     {
+        TakeDamage(damage, Vector3.zero);
+    }
+
+    public void TakeDamage(int damage, Vector3 knockbackDirection)
+    {
         if (currentHP <= 0) return;
+
+        if (knockbackDirection.sqrMagnitude > 0.001f)
+        {
+            ApplyKnockback(knockbackDirection);
+        }
 
         currentHP -= damage;
         UpdateUI();
@@ -60,6 +78,21 @@ public class EnemyStatus : MonoBehaviour
         {
             // ★修正：まだ生きている場合はダメージリアクションを再生する
             if (anim != null) anim.SetTrigger("Damage"); 
+        }
+    }
+
+    private void ApplyKnockback(Vector3 direction)
+    {
+        if (rb == null) return;
+
+        direction.y = 0;
+        if (direction.sqrMagnitude <= 0.001f) return;
+
+        rb.linearVelocity = new Vector3(direction.normalized.x * knockbackForce, knockbackUpForce, direction.normalized.z * knockbackForce);
+
+        if (core != null)
+        {
+            core.TriggerKnockback(0.2f); // 0.2秒間ノックバックの物理移動を優先し、通常の移動や摩擦による減速をバイパスする
         }
     }
 

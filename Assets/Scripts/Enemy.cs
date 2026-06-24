@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(CharacterCore))]
@@ -30,8 +30,11 @@ public class Enemy : MonoBehaviour
     {
         if (goal == null || agent == null) return;
 
-        // ★追加：目的地を常にプレイヤーの位置にする
-        agent.SetDestination(goal.transform.position);
+        // エージェントが有効で、かつ NavMesh 上に置かれている場合のみ目的地を更新する
+        if (agent.enabled && agent.isOnNavMesh)
+        {
+            agent.SetDestination(goal.transform.position);
+        }
 
         float distance = Vector3.Distance(transform.position, goal.transform.position);
 

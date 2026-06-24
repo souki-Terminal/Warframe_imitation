@@ -1,4 +1,5 @@
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
@@ -13,6 +14,9 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI resultTitleText; 
     public TextMeshProUGUI survivalTimeText;
     public TextMeshProUGUI enemyCountText; 
+    
+    [Header("通知UI設定")]
+    public TextMeshProUGUI notificationText; 
 
     private float survivalTime = 0f;
     private bool isPlayerDead = false;
@@ -23,11 +27,156 @@ public class GameManager : MonoBehaviour
         instance = this; 
     }
 
+    // --- スポナー（ウェーブ）の管理 ---
+    private List<EnemySpawner> spawners = new List<EnemySpawner>();
+    private int currentSpawnerIndex = 0;
+    private Queue<string> notificationQueue = new Queue<string>();
+    private bool isDisplayingNotification = false;
+
     void Start()
     {
         gameOverUI.SetActive(false);
         UpdateEnemyCountText();
         Time.timeScale = 1f; 
+
+        // シーン内のすべての EnemySpawner を取得する
+        EnemySpawner[] foundSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+        spawners = new List<EnemySpawner>(foundSpawners);
+
+        // 敵のレベル名（例: Enemy_Lv1, Enemy_Lv10 等）に含まれる数値でソートする。
+        // 数値が含まれない、または同一の場合は spawnStartTime でソートする。
+        spawners.Sort((a, b) => {
+            int aLv = GetLevelFromName(a.name);
+            int bLv = GetLevelFromName(b.name);
+            if (aLv != bLv)
+            {
+                return aLv.CompareTo(bLv);
+            }
+            return a.spawnStartTime.CompareTo(b.spawnStartTime);
+        });
+
+        // 最初のスポナーを開始する
+        if (spawners.Count > 0)
+        {
+            currentSpawnerIndex = 0;
+            spawners[currentSpawnerIndex].StartSpawning();
+        }
+    }
+
+    private int GetLevelFromName(string name)
+    {
+        int index = name.IndexOf("Enemy_Lv");
+        if (index >= 0)
+        {
+            string numStr = name.Substring(index + 8);
+            string digits = "";
+            foreach (char c in numStr)
+            {
+                if (char.IsDigit(c)) digits += c;
+                else break;
+            }
+            if (int.TryParse(digits, out int val))
+            {
+                return val;
+            }
+        }
+        return 0;
+    }
+
+    public void OnSpawnerCleared(EnemySpawner spawner)
+    {
+        if (spawners.Count > 0 && currentSpawnerIndex < spawners.Count && spawners[currentSpawnerIndex] == spawner)
+        {
+            currentSpawnerIndex++;
+            if (currentSpawnerIndex < spawners.Count)
+            {
+                string msg = $"次のウェーブを開始します: {spawners[currentSpawnerIndex].name}";
+                Debug.Log(msg);
+                // LiberationSans SDF での文字化けを防ぐため、インゲーム画面には英語で表示します。
+                ShowNotification($"Starting Wave: {spawners[currentSpawnerIndex].name}");
+                spawners[currentSpawnerIndex].StartSpawning();
+            }
+            else
+            {
+                // すべてのウェーブがクリアされた
+                string msg = "すべてのウェーブがクリアされました！";
+                Debug.Log(msg);
+                // LiberationSans SDF での文字化けを防ぐため、インゲーム画面には英語で表示します。
+                ShowNotification("All Waves Cleared!");
+                StartCoroutine(WaitAndClear(1.0f));
+            }
+        }
+    }
+
+    private void CreateDynamicNotificationText()
+    {
+        if (notificationText != null) return;
+
+        Canvas canvas = FindFirstObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        GameObject go = new GameObject("DynamicNotificationText");
+        go.transform.SetParent(canvas.transform, false);
+
+        notificationText = go.AddComponent<TextMeshProUGUI>();
+        
+        notificationText.fontSize = 28;
+        notificationText.fontStyle = FontStyles.Bold;
+        notificationText.alignment = TextAlignmentOptions.Center;
+        
+        // グラデーションとアウトラインを設定して見やすくする
+        notificationText.enableVertexGradient = true;
+        notificationText.colorGradient = new VertexGradient(
+            Color.white, Color.white,
+            new Color(1f, 0.85f, 0.2f), new Color(1f, 0.85f, 0.2f)
+        );
+        notificationText.outlineWidth = 0.2f;
+        notificationText.outlineColor = Color.black;
+
+        RectTransform rect = go.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -100f);
+            rect.sizeDelta = new Vector2(800f, 150f);
+        }
+    }
+
+    public void ShowNotification(string message)
+    {
+        notificationQueue.Enqueue(message);
+        if (!isDisplayingNotification)
+        {
+            StartCoroutine(ProcessNotificationQueue());
+        }
+    }
+
+    private IEnumerator ProcessNotificationQueue()
+    {
+        isDisplayingNotification = true;
+
+        if (notificationText == null)
+        {
+            CreateDynamicNotificationText();
+        }
+
+        while (notificationQueue.Count > 0)
+        {
+            string message = notificationQueue.Dequeue();
+            if (notificationText != null)
+            {
+                notificationText.text = message;
+            }
+            yield return new WaitForSeconds(3.0f);
+        }
+
+        if (notificationText != null)
+        {
+            notificationText.text = "";
+        }
+        isDisplayingNotification = false;
     }
 
     private GameObject lastSelectedUI;
@@ -214,7 +363,11 @@ public class GameManager : MonoBehaviour
 
         if (defeatedEnemyCount >= totalEnemyCount)
         {
-            StartCoroutine(WaitAndClear(1.0f)); 
+            // スポナーが存在しないシーン、またはすでに全スポナーがクリア済みの場合はクリア判定を行う
+            if (spawners == null || spawners.Count == 0 || currentSpawnerIndex >= spawners.Count)
+            {
+                StartCoroutine(WaitAndClear(1.0f)); 
+            }
         }
     }
 

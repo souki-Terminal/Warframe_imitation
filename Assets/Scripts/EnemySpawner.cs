@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,6 +32,16 @@ public class EnemySpawner : MonoBehaviour
             enemyGroup.Add(child.gameObject);
             child.gameObject.SetActive(false);
         }
+        
+        // GameManager が存在しない場合は自動的に開始する
+        if (GameManager.instance == null)
+        {
+            StartSpawning();
+        }
+    }
+
+    public void StartSpawning()
+    {
         StartCoroutine(SpawnAllEnemies());
     }
 
@@ -57,9 +67,19 @@ public class EnemySpawner : MonoBehaviour
     {
         if (spawnEffectPrefab != null)
         {
-            // ここで生成されるクローンはエフェクトだけです
-            GameObject effect = Instantiate(spawnEffectPrefab, enemy.transform.position, Quaternion.identity);
-            Destroy(effect, 3.0f); 
+            // インスペクターの設定ミス防止：エフェクトプレハブに敵キャラクター自身やスポナーが設定されている場合は生成しない
+            if (spawnEffectPrefab.GetComponent<Enemy>() != null || 
+                spawnEffectPrefab.GetComponentInChildren<UnityEngine.AI.NavMeshAgent>() != null ||
+                spawnEffectPrefab.GetComponent<EnemySpawner>() != null)
+            {
+                Debug.LogWarning($"[EnemySpawner Warning] {gameObject.name} の Spawn Effect Prefab に敵キャラクターまたはスポナー自身 ({spawnEffectPrefab.name}) が設定されているため、生成をスキップしました。インスペクターの設定を確認してください。");
+            }
+            else
+            {
+                // ここで生成されるクローンはエフェクトだけです
+                GameObject effect = Instantiate(spawnEffectPrefab, enemy.transform.position, Quaternion.identity);
+                Destroy(effect, 3.0f); 
+            }
         }
 
         yield return new WaitForSeconds(delayBeforeSpawn);
@@ -85,13 +105,29 @@ public class EnemySpawner : MonoBehaviour
         if (aliveCount == 0)
         {
             buffApplied = true;
-            Debug.Log("ウェーブクリア！プレイヤーを強化します！");
+            string msg = "ウェーブクリア！プレイヤーを強化します！";
+            Debug.Log(msg);
 
             if (playerStatus != null) playerStatus.HealAndBuffMaxHP(20);
             if (playerWeapon != null)
             {
                 playerWeapon.damage *= 3;
-                Debug.Log($"武器のダメージが強化された！ (現在: {playerWeapon.damage})");
+                string buffMsg = $"武器のダメージが強化された！ (現在: {playerWeapon.damage})";
+                Debug.Log(buffMsg);
+            }
+
+            // GameManager にこのウェーブが完了したことを通知する
+            if (GameManager.instance != null)
+            {
+                // LiberationSans SDF などのデフォルトフォントでの文字化け（□表示）を防ぐため、
+                // ゲーム画面内の通知は英語で送信します。
+                string uiMsg = "Wave Cleared! Player Buffed!";
+                if (playerWeapon != null)
+                {
+                    uiMsg += $"\nWeapon Damage Upgraded! (Now: {playerWeapon.damage})";
+                }
+                GameManager.instance.ShowNotification(uiMsg);
+                GameManager.instance.OnSpawnerCleared(this);
             }
         }
     }

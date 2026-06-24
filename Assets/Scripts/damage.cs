@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Damager : MonoBehaviour
 {
@@ -14,8 +14,27 @@ public class Damager : MonoBehaviour
         EnemyStatus enemy = other.GetComponentInParent<EnemyStatus>();
         if (enemy != null)
         {
-            enemy.TakeDamage(damage);
-            Debug.Log($"敵に {damage} のダメージ！");
+            // プレイヤーの正面方向をノックバック方向とする（正面が取得できない場合は敵との相対位置から計算）
+            Vector3 knockbackDir = Vector3.zero;
+            Transform playerRoot = transform.root;
+            if (playerRoot != null)
+            {
+                knockbackDir = playerRoot.forward;
+            }
+            else
+            {
+                knockbackDir = transform.forward;
+            }
+
+            knockbackDir.y = 0;
+            if (knockbackDir.sqrMagnitude <= 0.001f)
+            {
+                knockbackDir = (enemy.transform.position - transform.position).normalized;
+                knockbackDir.y = 0;
+            }
+
+            enemy.TakeDamage(damage, knockbackDir);
+            Debug.Log($"敵に {damage} のダメージ！ 方向: {knockbackDir}");
         }
     }
 }

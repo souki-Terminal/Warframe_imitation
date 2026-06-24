@@ -22,7 +22,8 @@ public class DamageReceiver : MonoBehaviour
         PlayerStatus player = target.GetComponent<PlayerStatus>();
         if (player != null)
         {
-            player.TakeDamage(attackDamage);
+            Vector3 direction = player.transform.position - transform.position;
+            player.TakeDamage(attackDamage, direction);
         }
     }
 }

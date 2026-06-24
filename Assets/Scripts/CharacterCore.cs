@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 
 public class CharacterCore : MonoBehaviour
@@ -17,6 +17,7 @@ public class CharacterCore : MonoBehaviour
     private bool isAttackTriggered; 
     private bool isJumpTriggered;
     private Transform lockOnTarget;
+    private float knockbackTimer = 0f;
 
     private bool hasIsHoldingAttack;
     private bool hasAttackTrigger;
@@ -42,6 +43,24 @@ public class CharacterCore : MonoBehaviour
 
     void Update()
     {
+        if (knockbackTimer > 0f)
+        {
+            knockbackTimer -= Time.deltaTime;
+            if (knockbackTimer <= 0f)
+            {
+                // ノックバック終了時に NavMeshAgent を再有効化し、安全に NavMesh 上に吸着させる
+                if (agent != null && !agent.enabled)
+                {
+                    agent.enabled = true;
+                    NavMeshHit hit;
+                    if (NavMesh.SamplePosition(transform.position, out hit, 2.0f, NavMesh.AllAreas))
+                    {
+                        agent.Warp(hit.position);
+                    }
+                }
+            }
+        }
+
         bool isDamaged = false;
         if (anim != null)
         {
@@ -115,9 +134,20 @@ public class CharacterCore : MonoBehaviour
         if (anim != null) anim.SetFloat("Speed", moveAmount * (isRunning ? 2.0f : 1.0f));
 
         // 🛑 ★変更2：ダメージ中または「スポーン中」は速度を0にして一切動けなくする
-        if (isDamagedState || isSpawningState)
+        // ただし、ノックバック中（knockbackTimer > 0）は物理挙動を優先し、速度をリセットしない
+        if ((isDamagedState || isSpawningState) && knockbackTimer <= 0f)
         {
             if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+        }
+        else if (knockbackTimer > 0f)
+        {
+            // ノックバック中は移動入力による上書きや摩擦による減速をスキップし、物理挙動（吹っ飛び）に任せる。
+            // 飛びすぎを防ぐために、水平方向の速度を徐々に減速（疑似的な空気抵抗）させる。
+            if (rb != null)
+            {
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x * 0.85f, rb.linearVelocity.y, rb.linearVelocity.z * 0.85f);
+            }
+            return;
         }
         else
         {
@@ -166,6 +196,16 @@ public class CharacterCore : MonoBehaviour
         {
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z); 
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z);
+        }
+    }
+
+    public void TriggerKnockback(float duration)
+    {
+        knockbackTimer = duration;
+        // 敵（NavMeshAgent）の場合、ノックバック物理移動を反映させるために一時的に無効化する
+        if (agent != null && agent.enabled)
+        {
+            agent.enabled = false;
         }
     }
 

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
@@ -124,7 +124,7 @@ public class CameraController : MonoBehaviour
     void FindNearestEnemy()
     {
         // 現在シーン内の敵を取得
-        EnemyStatus[] enemies = FindObjectsOfType<EnemyStatus>();
+        EnemyStatus[] enemies = FindObjectsByType<EnemyStatus>(FindObjectsSortMode.None);
         float nearestDist = lockOnRange;
         Transform nearestObj = null;
 
