@@ -20,6 +20,8 @@ public class PlayerControllerReal : MonoBehaviour
 
     void Update()
     {
+        if (core == null) return;
+
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 

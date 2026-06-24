@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro; // ★数字テキストを扱うために必要
 
@@ -52,6 +52,17 @@ public class PlayerStatus : MonoBehaviour
             currentHP = 0; // マイナス表示を防ぐ
             UpdateUI();
 
+            // ★追加：死亡した瞬間にプレイヤーの移動操作とCharacterCoreを停止する
+            PlayerControllerReal controller = GetComponent<PlayerControllerReal>();
+            if (controller != null) controller.enabled = false;
+
+            CharacterCore charCore = GetComponent<CharacterCore>();
+            if (charCore != null) charCore.enabled = false;
+
+            // リジッドボディがある場合、速度もリセットしてその場に留まらせる
+            Rigidbody playerRb = GetComponent<Rigidbody>();
+            if (playerRb != null) playerRb.linearVelocity = Vector3.zero;
+
             if (GameManager.instance != null)
             {
                 GameManager.instance.OnPlayerDied();
@@ -69,16 +80,13 @@ public class PlayerStatus : MonoBehaviour
 
     private void ApplyKnockback(Vector3 direction)
     {
-        if (rb == null) return;
-
         direction.y = 0;
         if (direction.sqrMagnitude <= 0.001f) return;
 
-        rb.linearVelocity = new Vector3(direction.normalized.x * knockbackForce, knockbackUpForce, direction.normalized.z * knockbackForce);
-
+        // ★修正：力を加える物理移動ではなく、CharacterCoreに座標を直接3動かすように指示する
         if (core != null)
         {
-            core.TriggerKnockback(0.2f); // 0.2秒間ノックバックの物理移動を優先し、通常の入力や摩擦減速をバイパスする
+            core.TriggerKnockback(direction, 3.0f, 0.2f);
         }
     }
 
@@ -86,6 +94,13 @@ public class PlayerStatus : MonoBehaviour
     {
         maxHP += amount;
         currentHP += amount;
+        UpdateUI();
+    }
+
+    // ★追加：体力を完全に最大値まで回復する
+    public void HealToFull()
+    {
+        currentHP = maxHP;
         UpdateUI();
     }
 

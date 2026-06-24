@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -20,7 +20,6 @@ public class GameManager : MonoBehaviour
 
     private float survivalTime = 0f;
     private bool isPlayerDead = false;
-    private int currentEnemyCount = 0;
 
     void Awake()
     {

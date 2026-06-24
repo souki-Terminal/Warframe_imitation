@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(CharacterCore))]
@@ -28,7 +28,7 @@ public class Enemy : MonoBehaviour
 
     void Update()
     {
-        if (goal == null || agent == null) return;
+        if (goal == null || agent == null || core == null) return;
 
         // エージェントが有効で、かつ NavMesh 上に置かれている場合のみ目的地を更新する
         if (agent.enabled && agent.isOnNavMesh)

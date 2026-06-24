@@ -18,8 +18,8 @@ public class DamageReceiver : MonoBehaviour
 
     private void ApplyDamage(GameObject target)
     {
-        // 相手がプレイヤー（PlayerStatusを持っている）か確認し、プレイヤーのみにダメージを与える
-        PlayerStatus player = target.GetComponent<PlayerStatus>();
+        // ★修正：プレイヤーのコライダーが子オブジェクトにある場合を考慮し、GetComponentInParent を使用する
+        PlayerStatus player = target.GetComponentInParent<PlayerStatus>();
         if (player != null)
         {
             Vector3 direction = player.transform.position - transform.position;
