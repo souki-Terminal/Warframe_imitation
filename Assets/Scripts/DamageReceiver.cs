@@ -6,6 +6,12 @@ public class DamageReceiver : MonoBehaviour
     [Tooltip("相手に与えるダメージ量")]
     public int attackDamage = 20;
 
+    [Header("ノックバック設定")]
+    [Tooltip("プレイヤーをノックバックさせる距離")]
+    public float knockbackDistance = 3.0f;
+    [Tooltip("プレイヤーのノックバックにかかる時間（秒）")]
+    public float knockbackDuration = 0.2f;
+
     private void OnCollisionEnter(Collision collision)
     {
         ApplyDamage(collision.gameObject);
@@ -23,7 +29,16 @@ public class DamageReceiver : MonoBehaviour
         if (player != null)
         {
             Vector3 direction = player.transform.position - transform.position;
-            player.TakeDamage(attackDamage, direction);
+            direction.y = 0;
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                Debug.LogError("[DamageReceiver] プレイヤーへのノックバック方向が計算できませんでした！仮の方向(Z軸)を使用します。");
+                direction = Vector3.forward;
+            }
+            direction.Normalize();
+
+            player.TakeDamage(attackDamage, direction, knockbackDistance, knockbackDuration);
+            Debug.Log($"プレイヤーに {attackDamage} のダメージ！ ノックバック方向: {direction}, 距離: {knockbackDistance}");
         }
     }
 }

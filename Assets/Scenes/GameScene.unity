@@ -2479,6 +2479,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &462934052
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4178,6 +4180,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &908911273
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4803,6 +4807,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &1079013785
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4940,6 +4946,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &1088671679
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5152,6 +5160,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &1151625705
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5834,6 +5844,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &1249841211
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -6723,6 +6735,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!1001 &1518622811
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6826,6 +6840,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &1518622817
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7655,6 +7671,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &1783474233
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8212,6 +8230,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageReceiver
   attackDamage: 2
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!65 &1811899041
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8776,6 +8796,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Damager
   damage: 10
+  knockbackDistance: 3
+  knockbackDuration: 0.2
 --- !u!1 &1958598022
 GameObject:
   m_ObjectHideFlags: 0

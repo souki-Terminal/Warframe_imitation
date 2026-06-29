@@ -7,6 +7,7 @@ public class EnemyStatus : MonoBehaviour
     [Header("敵のステータス")]
     public int maxHP = 50;
     private int currentHP;
+    public int CurrentHP => currentHP;
 
     [Header("ノックバック")]
     public float knockbackForce = 3.0f;
@@ -113,13 +114,17 @@ public class EnemyStatus : MonoBehaviour
         TakeDamage(damage, Vector3.zero);
     }
 
-    public void TakeDamage(int damage, Vector3 knockbackDirection)
+    public void TakeDamage(int damage, Vector3 knockbackDirection, float knockbackDist = 3.0f, float knockbackDur = 0.2f)
     {
         if (currentHP <= 0) return;
 
         if (knockbackDirection.sqrMagnitude > 0.001f)
         {
-            ApplyKnockback(knockbackDirection);
+            ApplyKnockback(knockbackDirection, knockbackDist, knockbackDur);
+        }
+        else
+        {
+            Debug.LogError("[EnemyStatus] ノックバック方向ベクトルが小さすぎるためノックバックしませんでした。");
         }
 
         currentHP -= damage;
@@ -156,20 +161,32 @@ public class EnemyStatus : MonoBehaviour
         }
         else
         {
-            // ★修正：まだ生きている場合はダメージリアクションを再生する
+            // まだ生きている場合はダメージリアクションを再生する
             if (anim != null) anim.SetTrigger("Damage"); 
         }
     }
 
-    private void ApplyKnockback(Vector3 direction)
+    private void ApplyKnockback(Vector3 direction, float distance, float duration)
     {
         direction.y = 0;
-        if (direction.sqrMagnitude <= 0.001f) return;
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            Debug.LogError("[EnemyStatus] ノックバック方向(水平)が0になったためノックバックしませんでした。");
+            return;
+        }
 
-        // ★修正：力を加える物理移動ではなく、CharacterCoreに座標を直接3動かすように指示する
         if (core != null)
         {
-            core.TriggerKnockback(direction, 3.0f, 0.2f);
+            if (distance <= 0f || duration <= 0f)
+            {
+                Debug.LogError($"[EnemyStatus] ノックバック距離({distance})または時間({duration})が不正なためノックバックしませんでした。");
+                return;
+            }
+            core.TriggerKnockback(direction, distance, duration);
+        }
+        else
+        {
+            Debug.LogError("[EnemyStatus] CharacterCoreが見つからないためノックバックできません！");
         }
     }
 

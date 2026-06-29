@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
@@ -80,8 +80,11 @@ public class CameraController : MonoBehaviour
 
         if (lockOnTarget != null)
         {
-            // 敵が消滅した際の処理
-            if (!lockOnTarget.gameObject.activeInHierarchy)
+            // 敵が消滅、あるいは死亡した際の処理
+            EnemyStatus status = lockOnTarget.GetComponent<EnemyStatus>();
+            if (status == null) status = lockOnTarget.GetComponentInParent<EnemyStatus>();
+
+            if (!lockOnTarget.gameObject.activeInHierarchy || (status != null && status.CurrentHP <= 0))
             {
                 lockOnTarget = null;
                 return;
@@ -130,7 +133,7 @@ public class CameraController : MonoBehaviour
 
         foreach (EnemyStatus enemy in enemies)
         {
-            if (!enemy.gameObject.activeInHierarchy) continue;
+            if (!enemy.gameObject.activeInHierarchy || enemy.CurrentHP <= 0) continue;
 
             float dist = Vector3.Distance(player.transform.position, enemy.transform.position);
             if (dist < nearestDist)

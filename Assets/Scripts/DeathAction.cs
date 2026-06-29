@@ -16,37 +16,11 @@ public class DeathAction : MonoBehaviour
     public float destroyDelay = 2.0f;
 
     private bool isDead = false;
-    private float deathYPosition;
 
     public void ExecuteDeath()
     {
         if (isDead) return;
         isDead = true;
-
-        // ★追加：床抜け防止のため、レイキャストで足元の地面の正確な高さを取得する（空中死亡時でも地面で止まるようにする）
-        deathYPosition = transform.position.y;
-        RaycastHit[] hits = Physics.RaycastAll(transform.position + Vector3.up * 0.5f, Vector3.down, 20.0f);
-        float bestY = -9999f;
-        foreach (var h in hits)
-        {
-            if (h.transform != transform && !h.transform.IsChildOf(transform))
-            {
-                // ★追加：他の敵やプレイヤーなどの動的キャラクターを床面と誤認しないように除外する
-                if (h.transform.GetComponentInParent<CharacterCore>() == null &&
-                    h.transform.GetComponentInParent<PlayerStatus>() == null &&
-                    h.transform.GetComponentInParent<EnemyStatus>() == null)
-                {
-                    if (h.point.y > bestY)
-                    {
-                        bestY = h.point.y;
-                    }
-                }
-            }
-        }
-        if (bestY > -9000f)
-        {
-            deathYPosition = bestY;
-        }
 
         // ★修正：モデルが子オブジェクトにある場合を考慮し、子オブジェクトからもAnimatorを探す
         Animator anim = GetComponentInChildren<Animator>();
@@ -97,65 +71,71 @@ public class DeathAction : MonoBehaviour
         EnemyStatus enemyStatus = GetComponent<EnemyStatus>();
         if (enemyStatus != null) enemyStatus.enabled = false;
 
-        // ★修正：プレイヤー同様に物理演算と地面への接触（コライダー）を残すことで、床抜けを防ぎ自然に倒れ込ませる。
-        // ただし、倒れた死体がプレイヤーの移動を邪魔しないよう、接地に必要なメインコライダー以外のコライダーは無効化し、メインコライダーは極小化する。
-        CharacterController cc = GetComponent<CharacterController>();
-        if (cc != null)
+        // --- 床抜け防止とプレイヤーとの衝突無視を設定 ---
+        // 物理演算（重力）をオンにしてしまうと、コライダーのサイズやアニメーションとの兼ね合いで床抜け（すり抜け）が発生しやすいため、
+        // アニメーションによる倒れ込み（キネマティックな状態）を維持します。
+        Rigidbody myRb = GetComponent<Rigidbody>();
+        if (myRb != null)
         {
-            cc.height = 0.2f;
-            cc.center = new Vector3(0, 0.1f, 0);
+            myRb.linearVelocity = Vector3.zero;
+            myRb.angularVelocity = Vector3.zero;
+            myRb.isKinematic = true; // ★修正：床抜けを防ぐため、キネマティックのままにする
+            myRb.useGravity = false; // ★修正：重力をオフにする
         }
 
-        // 全コライダーを取得し、接地に使うメインコライダー（ルート優先、なければ最初の子）を特定する
+        // 自身のすべてのコライダーを取得
         Collider[] cols = GetComponentsInChildren<Collider>();
+
+        // プレイヤーとの衝突を無視
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player == null) player = GameObject.Find("unitychan");
+        if (player != null)
+        {
+            Collider[] playerCols = player.GetComponentsInChildren<Collider>();
+            foreach (var myCol in cols)
+            {
+                foreach (var playerCol in playerCols)
+                {
+                    Physics.IgnoreCollision(myCol, playerCol, true);
+                }
+            }
+        }
+
+        // 他の敵との衝突も無視
+        EnemyStatus[] allEnemies = FindObjectsByType<EnemyStatus>(FindObjectsSortMode.None);
+        foreach (var otherEnemy in allEnemies)
+        {
+            if (otherEnemy.gameObject == gameObject) continue;
+            Collider[] otherCols = otherEnemy.GetComponentsInChildren<Collider>();
+            foreach (var myCol in cols)
+            {
+                foreach (var otherCol in otherCols)
+                {
+                    Physics.IgnoreCollision(myCol, otherCol, true);
+                }
+            }
+        }
+
+        // 接地用コライダー（メイン）を特定する
         Collider mainCol = GetComponent<Collider>();
         if (mainCol == null && cols.Length > 0)
         {
-            mainCol = cols[0]; // ルートになければ最初の子コライダーをメインとする
+            mainCol = cols[0];
         }
 
         foreach (var c in cols)
         {
             if (c == mainCol)
             {
-                // 接地用コライダーは有効のまま残し、床抜けを防ぐために極小サイズに縮小する
+                // メインコライダーは有効のまま、サイズも縮小しない（床抜けを完璧に防ぐため）
                 c.enabled = true;
                 c.isTrigger = false;
-
-                if (c is CapsuleCollider cap)
-                {
-                    cap.height = 0.2f;
-                    cap.center = new Vector3(0, 0.1f, 0);
-                }
-                else if (c is BoxCollider box)
-                {
-                    box.size = new Vector3(box.size.x, 0.2f, box.size.z);
-                    box.center = new Vector3(box.center.x, 0.1f, box.center.z);
-                }
-                else if (c is SphereCollider sphere)
-                {
-                    sphere.radius = 0.1f;
-                    sphere.center = new Vector3(sphere.center.x, 0.1f, sphere.center.z);
-                }
             }
             else
             {
-                // それ以外のサブコライダー（手足など）はプレイヤーのすり抜けのために無効化する
-                if (destroyOnDeath)
-                {
-                    c.enabled = false;
-                }
+                // それ以外のサブコライダー（手足、武器など）は無効化
+                c.enabled = false;
             }
-        }
-
-        // ★修正：重力落下による床抜け（すり抜け）を完全に防ぐため、すべてのRigidbodyをキネマティック（物理演算停止）にし、重力をオフにする
-        Rigidbody[] rbs = GetComponentsInChildren<Rigidbody>();
-        foreach (var r in rbs)
-        {
-            r.linearVelocity = Vector3.zero;
-            r.angularVelocity = Vector3.zero;
-            r.isKinematic = true;
-            r.useGravity = false;
         }
 
         if (destroyOnDeath)
@@ -171,22 +151,5 @@ public class DeathAction : MonoBehaviour
         Destroy(gameObject);
     }
 
-    void LateUpdate()
-    {
-        if (isDead)
-        {
-            // ★追加：何があっても床下（死亡時に検知した地面の高さ）にオブジェクトの座標がいかないようにクランプする
-            if (transform.position.y < deathYPosition)
-            {
-                transform.position = new Vector3(transform.position.x, deathYPosition, transform.position.z);
-                
-                Rigidbody rb = GetComponent<Rigidbody>();
-                if (rb != null && !rb.isKinematic)
-                {
-                    // 物理速度の下向き成分もクリアする
-                    rb.linearVelocity = new Vector3(rb.linearVelocity.x, Mathf.Max(0f, rb.linearVelocity.y), rb.linearVelocity.z);
-                }
-            }
-        }
-    }
+
 }

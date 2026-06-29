@@ -258,7 +258,14 @@ public class EnemySpawner : MonoBehaviour
         int aliveCount = 0;
         foreach (GameObject enemy in enemyGroup)
         {
-            if (enemy != null) aliveCount++;
+            if (enemy != null)
+            {
+                EnemyStatus status = enemy.GetComponent<EnemyStatus>();
+                if (status != null && status.CurrentHP > 0)
+                {
+                    aliveCount++;
+                }
+            }
         }
 
         if (aliveCount == 0)

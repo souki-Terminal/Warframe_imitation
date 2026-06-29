@@ -60,43 +60,6 @@ public class CharacterCore : MonoBehaviour
 
     void Update()
     {
-        if (knockbackTimer > 0f)
-        {
-            float dt = Time.deltaTime;
-            knockbackTimer -= dt;
-
-            // ★追加：力を加える物理移動ではなく、座標を直接移動させて正確にノックバック距離を再現する
-            float moveDist = (knockbackDistanceRemaining / (knockbackTimer + dt)) * dt;
-            moveDist = Mathf.Min(moveDist, knockbackDistanceRemaining);
-            knockbackDistanceRemaining -= moveDist;
-
-            Vector3 moveStep = knockbackDirection * moveDist;
-
-            if (rb != null && !rb.isKinematic)
-            {
-                rb.MovePosition(rb.position + moveStep);
-            }
-            else
-            {
-                transform.position += moveStep;
-            }
-
-            if (knockbackTimer <= 0f)
-            {
-                knockbackDistanceRemaining = 0f;
-                // ノックバック終了時に NavMeshAgent を再有効化し、安全に NavMesh 上に吸着させる
-                if (agent != null && !agent.enabled)
-                {
-                    agent.enabled = true;
-                    NavMeshHit hit;
-                    if (NavMesh.SamplePosition(transform.position, out hit, 2.0f, NavMesh.AllAreas))
-                    {
-                        agent.Warp(hit.position);
-                    }
-                }
-            }
-        }
-
         bool isDamaged = false;
         if (anim != null)
         {
@@ -105,9 +68,9 @@ public class CharacterCore : MonoBehaviour
             isDamaged = stateInfo.IsTag("Damage") || stateInfo.IsName("damaged (tired) stance") || stateInfo.IsName("damaged [tired] stance") || stateInfo.IsName("damage") || stateInfo.IsName("root|Take Damage");
         }
 
-        if (isJumpTriggered && !isDamaged && anim != null)
+        if (isJumpTriggered && anim != null)
         {
-            if (hasJumpTrigger)
+            if (!isDamaged && hasJumpTrigger)
             {
                 anim.ResetTrigger("Jump");
                 anim.SetTrigger("Jump");
@@ -138,6 +101,67 @@ public class CharacterCore : MonoBehaviour
 
     void FixedUpdate()
     {
+        // ノックバック処理を FixedUpdate で行うことで物理挙動と同期させる
+        if (knockbackTimer > 0f)
+        {
+            float dt = Time.fixedDeltaTime;
+            float moveDist = 0f;
+
+            if (knockbackTimer <= dt)
+            {
+                // このフレームでノックバックが終了するため、残りの距離をすべて移動
+                moveDist = knockbackDistanceRemaining;
+                knockbackTimer = 0f;
+            }
+            else
+            {
+                // 通常の移動割合計算（割り算バグを回避するため、減算前の knockbackTimer で割る）
+                moveDist = (knockbackDistanceRemaining / knockbackTimer) * dt;
+                knockbackTimer -= dt;
+            }
+
+            moveDist = Mathf.Min(moveDist, knockbackDistanceRemaining);
+            knockbackDistanceRemaining -= moveDist;
+
+            Vector3 moveStep = knockbackDirection * moveDist;
+
+            // 敵（NavMeshAgentを持つキャラクター）の場合は、Rigidbodyがあっても必ずNavMeshの制御（Transform移動）を優先する
+            if (rb != null && !rb.isKinematic && agent == null)
+            {
+                rb.MovePosition(rb.position + moveStep);
+                // Debug.Log($"[Knockback] (Rigidbody) Timer: {knockbackTimer:F3}, Move: {moveStep}, Pos: {rb.position}");
+            }
+            else
+            {
+                Vector3 prevPos = transform.position;
+                Vector3 nextPos = transform.position + moveStep;
+                UnityEngine.AI.NavMeshHit hit;
+                
+                if (UnityEngine.AI.NavMesh.Raycast(transform.position, nextPos, out hit, UnityEngine.AI.NavMesh.AllAreas))
+                {
+                    nextPos = hit.position;
+                }
+                else
+                {
+                    if (UnityEngine.AI.NavMesh.SamplePosition(nextPos, out hit, 0.5f, UnityEngine.AI.NavMesh.AllAreas))
+                    {
+                        nextPos.y = hit.position.y;
+                    }
+                }
+                transform.position = nextPos;
+                // Debug.Log($"[Knockback] (Transform) Timer: {knockbackTimer:F3}, Move: {moveStep}, Pos: {prevPos} -> {transform.position}");
+            }
+
+            if (knockbackTimer <= 0f)
+            {
+                knockbackDistanceRemaining = 0f;
+                if (agent != null && !agent.enabled)
+                {
+                    agent.enabled = true;
+                }
+            }
+        }
+
         bool isAttackingState = false;
         bool isDamagedState = false;
         bool isSpawningState = false; // ★追加1：スポーン中かどうかの判定用
@@ -148,8 +172,9 @@ public class CharacterCore : MonoBehaviour
             
             isAttackingState = stateInfo.IsTag("slash") || stateInfo.IsTag("Action") || stateInfo.IsTag("Attack") || stateInfo.IsTag("attack") ||
                                stateInfo.IsName("Attack") || stateInfo.IsName("attack") || stateInfo.IsName("EnemyAttack") ||
+                               stateInfo.IsName("Enemy_Attack_1") || stateInfo.IsName("SplashAttack") || stateInfo.IsName("LeftAttack") || stateInfo.IsName("RightAttack") ||
                                stateInfo.IsName("slash1") || stateInfo.IsName("slash2") || stateInfo.IsName("slash3") || stateInfo.IsName("slash4") || stateInfo.IsName("slash5") ||
-                               stateInfo.IsName("root|slash01") || stateInfo.IsName("root|slash 02");
+                               stateInfo.IsName("root_slash01") || stateInfo.IsName("root_slash 02");
             
             isDamagedState = stateInfo.IsTag("Damage") || stateInfo.IsName("damaged (tired) stance") || stateInfo.IsName("damaged [tired] stance") || stateInfo.IsName("damage") || stateInfo.IsName("root|Take Damage");
 
@@ -162,7 +187,11 @@ public class CharacterCore : MonoBehaviour
         {
             if (anim != null) anim.SetFloat("Speed", agent.velocity.magnitude);
             // ★変更1：ダメージ中だけでなく「スポーン中」もストップさせる
-            agent.isStopped = isAttackingState || isDamagedState || isSpawningState;
+            // isOnNavMesh が true の時のみ isStopped を変更する (Resume/Stop エラーの防止)
+            if (agent.isOnNavMesh)
+            {
+                agent.isStopped = isAttackingState || isDamagedState || isSpawningState;
+            }
 
             // ★追加：物理的な押し出しによる「ドリフト（氷の上を滑るように遠ざかる挙動）」を防ぐため、エージェント移動中はRigidbodyの水平速度を0にする
             if (rb != null)
@@ -258,7 +287,7 @@ public class CharacterCore : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
         }
 
-        // 敵（NavMeshAgent）の場合、ノックバック中の座標移動を優先させるため一時的に無効化する
+        // 敵（NavMeshAgent）の場合、ノックバック中の座標移動を邪魔させないため一時的に無効化する
         if (agent != null && agent.enabled)
         {
             agent.enabled = false;

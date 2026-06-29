@@ -31,13 +31,17 @@ public class PlayerStatus : MonoBehaviour
         TakeDamage(damage, Vector3.zero);
     }
 
-    public void TakeDamage(int damage, Vector3 knockbackDirection)
+    public void TakeDamage(int damage, Vector3 knockbackDirection, float knockbackDist = 3.0f, float knockbackDur = 0.2f)
     {
         if (currentHP <= 0) return;
 
         if (knockbackDirection.sqrMagnitude > 0.001f)
         {
-            ApplyKnockback(knockbackDirection);
+            ApplyKnockback(knockbackDirection, knockbackDist, knockbackDur);
+        }
+        else
+        {
+            Debug.LogError("[PlayerStatus] ノックバック方向ベクトルが小さすぎるためノックバックしませんでした。");
         }
 
         currentHP -= damage;
@@ -78,15 +82,27 @@ public class PlayerStatus : MonoBehaviour
         }
     }
 
-    private void ApplyKnockback(Vector3 direction)
+    private void ApplyKnockback(Vector3 direction, float distance, float duration)
     {
         direction.y = 0;
-        if (direction.sqrMagnitude <= 0.001f) return;
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            Debug.LogError("[PlayerStatus] ノックバック方向(水平)が0になったためノックバックしませんでした。");
+            return;
+        }
 
-        // ★修正：力を加える物理移動ではなく、CharacterCoreに座標を直接3動かすように指示する
         if (core != null)
         {
-            core.TriggerKnockback(direction, 3.0f, 0.2f);
+            if (distance <= 0f || duration <= 0f)
+            {
+                Debug.LogError($"[PlayerStatus] ノックバック距離({distance})または時間({duration})が不正なためノックバックしませんでした。");
+                return;
+            }
+            core.TriggerKnockback(direction, distance, duration);
+        }
+        else
+        {
+            Debug.LogError("[PlayerStatus] CharacterCoreが見つからないためノックバックできません！");
         }
     }
 
