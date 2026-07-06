@@ -204,8 +204,29 @@ public class CharacterCore : MonoBehaviour
         // --- Rigidbody（プレイヤー等）の移動制御 ---
         float currentSpeed = isRunning ? speed * 2.0f : speed;
         float moveAmount = inputDirection.magnitude;
+        float speedMultiplier = isRunning ? 2.0f : 1.0f;
         
-        if (anim != null) anim.SetFloat("Speed", moveAmount * (isRunning ? 2.0f : 1.0f));
+        if (anim != null)
+        {
+            // 従来の互換性用
+            anim.SetFloat("Speed", moveAmount * speedMultiplier);
+
+            // ★追加：Blend Tree用の InputX と InputY を計算
+            if (lockOnTarget != null)
+            {
+                // ロックオン中は敵の方を向き続けるため、キャラクターから見た相対的な入力方向を計算する
+                // transform.InverseTransformDirection を使うことでワールド座標の入力ベクトルをローカル座標（キャラクター基準）に変換
+                Vector3 localInput = transform.InverseTransformDirection(inputDirection);
+                anim.SetFloat("InputX", localInput.x * speedMultiplier);
+                anim.SetFloat("InputY", localInput.z * speedMultiplier);
+            }
+            else
+            {
+                // ロックオンしていない時は入力方向を向いて進むため、常に前進（Y方向）として扱う
+                anim.SetFloat("InputX", 0f);
+                anim.SetFloat("InputY", moveAmount * speedMultiplier);
+            }
+        }
 
         // 🛑 ★変更2：ダメージ中または「スポーン中」は速度を0にして一切動けなくする
         // ただし、ノックバック中（knockbackTimer > 0）は物理挙動を優先し、速度をリセットしない
