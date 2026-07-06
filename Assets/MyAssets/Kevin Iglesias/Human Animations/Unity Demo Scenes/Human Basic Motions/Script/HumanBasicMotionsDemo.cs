@@ -925,10 +925,22 @@ namespace KevinIglesias
             baseUVRotation = 0f;
             baseOffsetX = 0f;
             baseOffsetY = 0f;
-            baseMaterial.mainTextureOffset = Vector2.zero;
-            baseMaterial.SetFloat("_UVRotation", 0);
-            backgroundMaterial.SetVector("_LightDir", backgroundLightDir);
-            character.localEulerAngles = Vector3.zero;
+            
+            if (baseMaterial != null)
+            {
+                baseMaterial.mainTextureOffset = Vector2.zero;
+                baseMaterial.SetFloat("_UVRotation", 0);
+            }
+            
+            if (backgroundMaterial != null)
+            {
+                backgroundMaterial.SetVector("_LightDir", backgroundLightDir);
+            }
+            
+            if (character != null)
+            {
+                character.localEulerAngles = Vector3.zero;
+            }
         }
         private void UpdateBaseMaterialOffset()
         {

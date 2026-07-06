@@ -314,7 +314,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &12152111
 Transform:
@@ -1409,7 +1409,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!64 &215832150
 MeshCollider:
@@ -1559,7 +1559,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112
-  m_CollisionDetection: 0
+  m_CollisionDetection: 2
 --- !u!114 &277015211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2291,7 +2291,7 @@ Transform:
   m_GameObject: {fileID: 402446589}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.00699, y: -0, z: -1.12824}
+  m_LocalPosition: {x: 0, y: -0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4233,7 +4233,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &912096526
 Transform:
@@ -4375,7 +4375,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
-  m_NavMeshData: {fileID: 23800000, guid: d2fa4201325b0744596e9f3b2edc0e6e, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: db4f8ef28ca198a4bbcc49a41cba79e1, type: 2}
   m_BuildHeightMesh: 0
 --- !u!4 &930520323
 Transform:
@@ -6122,6 +6122,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1283458766}
   - component: {fileID: 1283458767}
+  - component: {fileID: 1283458768}
   m_Layer: 0
   m_Name: Enemy_Lv1
   m_TagString: Untagged
@@ -6174,6 +6175,75 @@ MonoBehaviour:
   spawnCount: 10
   minEnemyHP: 30
   maxEnemyHP: 80
+--- !u!114 &1283458768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1283458765}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a4037e6e845cef45a1c8695b047ae7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KevinIglesias.HumanBasicMotionsDemo
+  cameraPivot: {fileID: 0}
+  targetCamera: {fileID: 0}
+  zoomStep: 5
+  minFOV: 35
+  maxFOV: 75
+  rotationSpeed: 120
+  baseT: {fileID: 0}
+  baseMaterial: {fileID: 0}
+  baseTreadmillMultiplier: 0.5
+  shadowT: {fileID: 0}
+  shadowSprite: {fileID: 0}
+  shadowFloorY: 0.001
+  groundedScale: 0.6
+  groundedAlpha: 0.78
+  maxJumpHeight: 1
+  airScale: 1
+  airAlpha: 0.05
+  shadowFootPadding: 0.35
+  shadowMinScale: 0.75
+  shadowMaxScale: 2.25
+  backgroundMaterial: {fileID: 0}
+  backgroundLightDir: {x: 0, y: -0.1, z: 1}
+  zoomIn: {fileID: 0}
+  zoomOut: {fileID: 0}
+  leftArrow: {fileID: 0}
+  rightArrow: {fileID: 0}
+  normalButtonColor: {r: 1, g: 1, b: 1, a: 1}
+  selectedButtonColor: {r: 0, g: 0, b: 0, a: 1}
+  normalTextColor: {r: 0, g: 0, b: 0, a: 1}
+  selectedTextColor: {r: 1, g: 1, b: 1, a: 1}
+  normalScale: {x: 1, y: 1, z: 1}
+  pressedScale: {x: 0.85, y: 0.85, z: 0.85}
+  availableCharacters: []
+  currentCharacterIndex: 0
+  characterUIPrefab: {fileID: 0}
+  charactersUIRoot: {fileID: 0}
+  character: {fileID: 0}
+  animator: {fileID: 0}
+  availableAnimations: []
+  currentAnimationText: {fileID: 0}
+  currentAnimationFolderText: {fileID: 0}
+  animationsUIRoot: {fileID: 0}
+  folderButtonPrefab: {fileID: 0}
+  animationUIPrefab: {fileID: 0}
+  currentAnimationName: 
+  currentUpperAnimationName: 
+  animationType: 0
+  baseTypeButton: {fileID: 0}
+  upperTypeButton: {fileID: 0}
+  animationsFolder: Assets/Kevin Iglesias/Human Animations/Animations
+  propLowChair: {fileID: 0}
+  propMediumChair: {fileID: 0}
+  propHighChair: {fileID: 0}
+  propDrinkablesL: []
+  propDrinkablesR: []
+  propEdiblesL: []
+  propEdiblesR: []
 --- !u!1 &1290783454
 GameObject:
   m_ObjectHideFlags: 0
@@ -7094,7 +7164,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &1568684469
 Transform:
@@ -8465,7 +8535,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &1911777502
 Transform:
