@@ -5,6 +5,13 @@ using UnityEngine.UI;
 
 public class TitleManager : MonoBehaviour
 {
+    [Header("シーン遷移設定")]
+    [SerializeField] private string gameSceneName = "GameScene";
+
+    [Header("UI色設定")]
+    [SerializeField] private Color defaultSelectedColor = new Color(0.7f, 0.85f, 1f, 1f);
+    [SerializeField] private Color defaultHighlightedColor = new Color(0.8f, 0.9f, 1f, 1f);
+
     private GameObject lastSelected;
 
     void Start()
@@ -50,9 +57,9 @@ public class TitleManager : MonoBehaviour
         foreach (var button in buttons)
         {
             var colors = button.colors;
-            // 選択時・ハイライト時がはっきりわかるように鮮やかな色に設定する
-            colors.selectedColor = new Color(0.7f, 0.85f, 1f, 1f);   // 水色
-            colors.highlightedColor = new Color(0.8f, 0.9f, 1f, 1f); // 少し明るい水色
+            // 選択時・ハイライト時がはっきりわかるように色を設定する
+            colors.selectedColor = defaultSelectedColor;
+            colors.highlightedColor = defaultHighlightedColor;
             button.colors = colors;
         }
     }
@@ -114,7 +121,19 @@ public class TitleManager : MonoBehaviour
     // ボタンから呼び出せるように public をつけます
     public void OnClickStartButton()
     {
-        // "GameScene" の部分は、ご自身の実際のゲームシーン名に合わせて変更してください
-        SceneManager.LoadScene("GameScene");
+        // 設定されたゲームシーン名に合わせて遷移します
+        SceneManager.LoadScene(gameSceneName);
+    }
+
+    // ゲーム終了ボタン用の処理を追加
+    public void OnClickQuitButton()
+    {
+#if UNITY_EDITOR
+        // エディタ上でのプレイを終了する
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        // ビルドされたゲームを終了する
+        Application.Quit();
+#endif
     }
 }

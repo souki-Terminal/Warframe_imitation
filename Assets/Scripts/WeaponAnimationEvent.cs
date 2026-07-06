@@ -9,6 +9,23 @@ public class WeaponAnimationEvent : MonoBehaviour
     private bool isPlayerWeapon;
     private Coroutine disableCoroutine;
 
+    private static readonly int[] attackStateHashes = {
+        Animator.StringToHash("Attack"),
+        Animator.StringToHash("attack"),
+        Animator.StringToHash("EnemyAttack"),
+        Animator.StringToHash("Enemy_Attack_1"),
+        Animator.StringToHash("SplashAttack"),
+        Animator.StringToHash("LeftAttack"),
+        Animator.StringToHash("RightAttack"),
+        Animator.StringToHash("slash1"),
+        Animator.StringToHash("slash2"),
+        Animator.StringToHash("slash3"),
+        Animator.StringToHash("slash4"),
+        Animator.StringToHash("slash5"),
+        Animator.StringToHash("root_slash01"),
+        Animator.StringToHash("root_slash 02")
+    };
+
     void Start()
     {
         anim = GetComponent<Animator>();
@@ -34,11 +51,20 @@ public class WeaponAnimationEvent : MonoBehaviour
             AnimatorStateInfo stateInfo = anim.GetCurrentAnimatorStateInfo(0);
             
             // CharacterCore.cs で使用されている攻撃アニメーションのステート/タグの判定ロジックと同期
-            bool isAttackingState = stateInfo.IsTag("slash") || stateInfo.IsTag("Action") || stateInfo.IsTag("Attack") || stateInfo.IsTag("attack") ||
-                                   stateInfo.IsName("Attack") || stateInfo.IsName("attack") || stateInfo.IsName("EnemyAttack") ||
-                                   stateInfo.IsName("Enemy_Attack_1") || stateInfo.IsName("SplashAttack") || stateInfo.IsName("LeftAttack") || stateInfo.IsName("RightAttack") ||
-                                   stateInfo.IsName("slash1") || stateInfo.IsName("slash2") || stateInfo.IsName("slash3") || stateInfo.IsName("slash4") || stateInfo.IsName("slash5") ||
-                                   stateInfo.IsName("root_slash01") || stateInfo.IsName("root_slash 02");
+            bool isAttackingState = stateInfo.IsTag("slash") || stateInfo.IsTag("Action") || stateInfo.IsTag("Attack") || stateInfo.IsTag("attack");
+
+            if (!isAttackingState)
+            {
+                int shortNameHash = stateInfo.shortNameHash;
+                foreach (int hash in attackStateHashes)
+                {
+                    if (shortNameHash == hash)
+                    {
+                        isAttackingState = true;
+                        break;
+                    }
+                }
+            }
 
             if (!isAttackingState)
             {

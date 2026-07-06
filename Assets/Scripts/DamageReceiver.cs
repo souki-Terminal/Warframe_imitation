@@ -4,7 +4,9 @@ public class DamageReceiver : MonoBehaviour
 {
     [Header("攻撃設定")]
     [Tooltip("相手に与えるダメージ量")]
-    public int attackDamage = 20;
+    [SerializeField] private int attackDamage = 20;
+
+    public int AttackDamage { get => attackDamage; set => attackDamage = value; }
 
     [Header("ノックバック設定")]
     [Tooltip("プレイヤーをノックバックさせる距離")]

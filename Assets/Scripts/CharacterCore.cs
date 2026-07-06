@@ -24,6 +24,7 @@ public class CharacterCore : MonoBehaviour
     private bool hasIsHoldingAttack;
     private bool hasAttackTrigger;
     private bool hasJumpTrigger;
+    private bool hasInputXY = false; // ★追加：AnimatorがInputX/InputYを持っているか
 
     void Start()
     {
@@ -39,6 +40,7 @@ public class CharacterCore : MonoBehaviour
                 if (param.name == "isHoldingAttack") hasIsHoldingAttack = true;
                 if (param.name == "Attack") hasAttackTrigger = true;
                 if (param.name == "Jump") hasJumpTrigger = true;
+                if (param.name == "InputX") hasInputXY = true; // ★追加
             }
         }
 
@@ -208,23 +210,26 @@ public class CharacterCore : MonoBehaviour
         
         if (anim != null)
         {
-            // 従来の互換性用
+            // 従来の互換性用（敵などはSpeedのみを使用する）
             anim.SetFloat("Speed", moveAmount * speedMultiplier);
 
-            // ★追加：Blend Tree用の InputX と InputY を計算
-            if (lockOnTarget != null)
+            // アニメーターに InputX / InputY パラメーターが存在する場合のみ送信する
+            // （タグに依存せず、パラメーターの有無で自動判定）
+            if (hasInputXY)
             {
-                // ロックオン中は敵の方を向き続けるため、キャラクターから見た相対的な入力方向を計算する
-                // transform.InverseTransformDirection を使うことでワールド座標の入力ベクトルをローカル座標（キャラクター基準）に変換
-                Vector3 localInput = transform.InverseTransformDirection(inputDirection);
-                anim.SetFloat("InputX", localInput.x * speedMultiplier);
-                anim.SetFloat("InputY", localInput.z * speedMultiplier);
-            }
-            else
-            {
-                // ロックオンしていない時は入力方向を向いて進むため、常に前進（Y方向）として扱う
-                anim.SetFloat("InputX", 0f);
-                anim.SetFloat("InputY", moveAmount * speedMultiplier);
+                if (lockOnTarget != null)
+                {
+                    Vector3 localInput = transform.InverseTransformDirection(inputDirection);
+                    anim.SetFloat("InputX", localInput.x * speedMultiplier);
+                    anim.SetFloat("InputY", localInput.z * speedMultiplier);
+                    // Debug.Log($"[2D Blend] LockedOn! InputX: {localInput.x * speedMultiplier:F2}, InputY: {localInput.z * speedMultiplier:F2}");
+                }
+                else
+                {
+                    anim.SetFloat("InputX", 0f);
+                    anim.SetFloat("InputY", moveAmount * speedMultiplier);
+                    // Debug.Log($"[2D Blend] Free! InputX: 0, InputY: {moveAmount * speedMultiplier:F2}");
+                }
             }
         }
 

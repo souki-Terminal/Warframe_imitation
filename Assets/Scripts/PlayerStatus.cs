@@ -17,12 +17,20 @@ public class PlayerStatus : MonoBehaviour
 
     private Rigidbody rb;
     private CharacterCore core;
+    private Animator anim;
+    private PlayerControllerReal playerController;
 
     void Start()
     {
         currentHP = maxHP;
         rb = GetComponent<Rigidbody>();
         core = GetComponent<CharacterCore>();
+        
+        anim = GetComponentInChildren<Animator>();
+        if (anim == null) anim = GetComponent<Animator>();
+        
+        playerController = GetComponent<PlayerControllerReal>();
+        
         UpdateUI();
     }
 
@@ -47,25 +55,17 @@ public class PlayerStatus : MonoBehaviour
         currentHP -= damage;
         UpdateUI();
 
-        // アニメーターを取得
-        Animator anim = GetComponentInChildren<Animator>();
-        if (anim == null) anim = GetComponent<Animator>();
-
         if (currentHP <= 0)
         {
             currentHP = 0; // マイナス表示を防ぐ
             UpdateUI();
 
             // ★追加：死亡した瞬間にプレイヤーの移動操作とCharacterCoreを停止する
-            PlayerControllerReal controller = GetComponent<PlayerControllerReal>();
-            if (controller != null) controller.enabled = false;
-
-            CharacterCore charCore = GetComponent<CharacterCore>();
-            if (charCore != null) charCore.enabled = false;
+            if (playerController != null) playerController.enabled = false;
+            if (core != null) core.enabled = false;
 
             // リジッドボディがある場合、速度もリセットしてその場に留まらせる
-            Rigidbody playerRb = GetComponent<Rigidbody>();
-            if (playerRb != null) playerRb.linearVelocity = Vector3.zero;
+            if (rb != null) rb.linearVelocity = Vector3.zero;
 
             if (GameManager.instance != null)
             {

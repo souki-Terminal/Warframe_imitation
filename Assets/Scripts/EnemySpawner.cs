@@ -87,9 +87,11 @@ public class EnemySpawner : MonoBehaviour
         spawnCount = Mathf.RoundToInt(countFloat);
         if (spawnCount < 1) spawnCount = 1;
 
-        // ★修正：難易度（ゲームレベル）を落とし、敵の体力・攻撃力をマイルドに変更
-        // 必要攻撃回数をマイルドに（Lv.1で1.5撃、Lv.100で3撃）
-        float hitCount = Mathf.Lerp(1.5f, 3f, (level - 1) / 99f);
+        // ★修正：敵の体力をレベルに応じて指定の攻撃回数で倒せるように設定
+        // Lv1=2回, Lv2=4回, Lv3=8回, Lv4=16回... と倍増させる (2のレベル乗)
+        float hitCount = Mathf.Pow(2f, level);
+        
+        // プレイヤーの武器の攻撃力はウェーブクリア毎に3倍になるため、ベースダメージ10に3の(レベル-1)乗をかけたものが想定ダメージ
         double rawHP = 10.0 * System.Math.Pow(3.0, level - 1) * hitCount;
         int enemyHP = (int)System.Math.Min(rawHP, 2000000000); // 20億上限
 
@@ -127,7 +129,7 @@ public class EnemySpawner : MonoBehaviour
                 if (receiver == null) receiver = newEnemy.GetComponent<DamageReceiver>();
                 if (receiver != null)
                 {
-                    receiver.attackDamage = enemyAttackDamage;
+                    receiver.AttackDamage = enemyAttackDamage;
                 }
 
                 // NavMeshAgentがある場合、NavMesh上の最も近い位置にスナップさせて不具合を防ぐ
@@ -165,7 +167,7 @@ public class EnemySpawner : MonoBehaviour
                 if (receiver == null) receiver = child.GetComponent<DamageReceiver>();
                 if (receiver != null)
                 {
-                    receiver.attackDamage = enemyAttackDamage;
+                    receiver.AttackDamage = enemyAttackDamage;
                 }
 
                 if (randomizePositionOnStart)
