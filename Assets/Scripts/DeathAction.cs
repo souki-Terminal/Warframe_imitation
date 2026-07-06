@@ -74,7 +74,7 @@ public class DeathAction : MonoBehaviour
         // --- 床抜け防止とプレイヤーとの衝突無視を設定 ---
         // 物理演算（重力）をオンにしてしまうと、コライダーのサイズやアニメーションとの兼ね合いで床抜け（すり抜け）が発生しやすいため、
         // アニメーションによる倒れ込み（キネマティックな状態）を維持します。
-        Rigidbody myRb = GetComponent<Rigidbody>();
+        Rigidbody myRb = GetComponentInChildren<Rigidbody>();
         if (myRb != null)
         {
             myRb.linearVelocity = Vector3.zero;
@@ -116,8 +116,9 @@ public class DeathAction : MonoBehaviour
             }
         }
 
-        // 接地用コライダー（メイン）を特定する
-        Collider mainCol = GetComponent<Collider>();
+        // 接地・物理衝突用のメインコライダー（CapsuleColliderなど）を特定する
+        Collider mainCol = GetComponentInChildren<CapsuleCollider>();
+        if (mainCol == null) mainCol = GetComponent<Collider>();
         if (mainCol == null && cols.Length > 0)
         {
             mainCol = cols[0];
