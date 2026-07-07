@@ -18,6 +18,13 @@ public class GameManager : MonoBehaviour
     [Header("通知UI設定")]
     public TextMeshProUGUI notificationText; 
 
+    [Header("タイピング・パワーアップ関連UI")]
+    public GameObject typingChoicePanel; // タイピング挑戦確認UI
+    public GameObject typingGamePanel;   // タイピング画面UI
+    public GameObject powerUpPanel;      // パワーアップ選択UI
+
+    private EnemySpawner pendingSpawner;
+
     private float survivalTime = 0f;
     private bool isPlayerDead = false;
 
@@ -84,14 +91,55 @@ public class GameManager : MonoBehaviour
 
     public void OnSpawnerCleared(EnemySpawner spawner)
     {
-        if (spawners.Count > 0 && currentSpawnerIndex < spawners.Count && spawners[currentSpawnerIndex] == spawner)
+        pendingSpawner = spawner;
+        // まず選択肢UIを出す
+        if (typingChoicePanel != null)
+        {
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            typingChoicePanel.SetActive(true);
+            SelectFirstActiveButtonInPanel(typingChoicePanel);
+        }
+        else
+        {
+            // UIが未設定の場合はそのままスキップして次へ
+            ProceedToNextWave();
+        }
+    }
+
+    public void OnTypingChoiceYes()
+    {
+        if (typingChoicePanel != null) typingChoicePanel.SetActive(false);
+        if (typingGamePanel != null) typingGamePanel.SetActive(true);
+        var tm = GetComponent<TypingManager>();
+        if (tm != null) tm.StartChallenge();
+    }
+
+    public void OnTypingChoiceNo()
+    {
+        if (typingChoicePanel != null) typingChoicePanel.SetActive(false);
+        var pm = GetComponent<PowerUpManager>();
+        if (pm != null) pm.ShowChoices(3); // タイピングをしない場合は通常の3択
+    }
+
+    public void ProceedToNextWave()
+    {
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        
+        if (powerUpPanel != null) powerUpPanel.SetActive(false);
+        if (typingChoicePanel != null) typingChoicePanel.SetActive(false);
+        if (typingGamePanel != null) typingGamePanel.SetActive(false);
+
+        if (spawners.Count > 0 && currentSpawnerIndex < spawners.Count && spawners[currentSpawnerIndex] == pendingSpawner)
         {
             currentSpawnerIndex++;
             if (currentSpawnerIndex < spawners.Count)
             {
                 string msg = $"次のウェーブを開始します: {spawners[currentSpawnerIndex].name}";
                 Debug.Log(msg);
-                // LiberationSans SDF での文字化けを防ぐため、インゲーム画面には英語で表示します。
                 ShowNotification($"Starting Wave: {spawners[currentSpawnerIndex].name}");
                 spawners[currentSpawnerIndex].StartSpawning();
             }
@@ -100,7 +148,6 @@ public class GameManager : MonoBehaviour
                 // すべてのウェーブがクリアされた
                 string msg = "すべてのウェーブがクリアされました！";
                 Debug.Log(msg);
-                // LiberationSans SDF での文字化けを防ぐため、インゲーム画面には英語で表示します。
                 ShowNotification("All Waves Cleared!");
                 StartCoroutine(WaitAndClear(1.0f));
             }
@@ -168,7 +215,7 @@ public class GameManager : MonoBehaviour
             {
                 notificationText.text = message;
             }
-            yield return new WaitForSeconds(3.0f);
+            yield return new WaitForSecondsRealtime(3.0f);
         }
 
         if (notificationText != null)
@@ -239,7 +286,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void SelectFirstActiveButtonInPanel(GameObject panel)
+    public void SelectFirstActiveButtonInPanel(GameObject panel)
     {
         if (panel == null) return;
         StartCoroutine(SelectFirstActiveButtonRoutine(panel));

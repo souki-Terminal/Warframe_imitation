@@ -31,15 +31,6 @@ public class EnemySpawner : MonoBehaviour
     [Tooltip("ランダム配置するZ座標の範囲（最小値と最大値、randomizeZがオンの時のみ有効）")]
     public Vector2 randomZRange = new Vector2(-45f, 45f);
 
-    [Header("自動生成設定（プレハブから生成する場合）")]
-    [Tooltip("ゲーム開始時に生成する敵のプレハブ（空の場合は既存の子オブジェクトを使用します）")]
-    public GameObject enemyPrefab;
-    [Tooltip("ゲーム開始時に生成する敵の数")]
-    public int spawnCount = 10;
-    [Tooltip("生成される敵の最小体力")]
-    public int minEnemyHP = 30;
-    [Tooltip("生成される敵の最大体力")]
-    public int maxEnemyHP = 80;
 
     private List<GameObject> enemyGroup = new List<GameObject>(); 
     private bool allSpawned = false;
@@ -70,23 +61,6 @@ public class EnemySpawner : MonoBehaviour
         // スポナーの名前からレベル数を取得（例: Enemy_Lv50 -> 50）
         int level = GetLevelFromName(gameObject.name);
 
-        // ★修正：敵の出現数を「Lv 1で4体」「Lv 10で3体」「Lv 50で2体」「Lv 100で1体」に段階的に減少させる（折れ線補間）
-        float countFloat;
-        if (level <= 10)
-        {
-            countFloat = Mathf.Lerp(4f, 3f, (level - 1) / 9f);
-        }
-        else if (level <= 50)
-        {
-            countFloat = Mathf.Lerp(3f, 2f, (level - 10) / 40f);
-        }
-        else
-        {
-            countFloat = Mathf.Lerp(2f, 1f, (level - 50) / 50f);
-        }
-        spawnCount = Mathf.RoundToInt(countFloat);
-        if (spawnCount < 1) spawnCount = 1;
-
         // ★修正：敵の体力をレベルに応じて指定の攻撃回数で倒せるように設定
         // Lv1=2回, Lv2=4回, Lv3=8回, Lv4=16回... と倍増させる (2のレベル乗)
         float hitCount = Mathf.Pow(2f, level);
@@ -101,55 +75,10 @@ public class EnemySpawner : MonoBehaviour
         int enemyAttackDamage = Mathf.RoundToInt(playerHP / surviveHits);
         if (enemyAttackDamage < 1) enemyAttackDamage = 1;
 
-        Debug.Log($"[{gameObject.name}] Level {level} Configured -> Count: {spawnCount}, HP: {enemyHP}, DMG: {enemyAttackDamage}");
+        Debug.Log($"[{gameObject.name}] Level {level} Configured -> HP: {enemyHP}, DMG: {enemyAttackDamage}");
 
-        // プレハブが設定されている場合は、ゲーム開始時に自動生成する
-        if (enemyPrefab != null)
-        {
-            for (int i = 0; i < spawnCount; i++)
-            {
-                float randomX = Random.Range(randomXRange.x, randomXRange.y);
-                float randomZ = randomizeZ ? Random.Range(randomZRange.x, randomZRange.y) : transform.position.z;
-                
-                // Y座標はスポナーの高さを基準にする
-                Vector3 targetPos = new Vector3(randomX, transform.position.y, randomZ);
+        // 手動で配置済みの子オブジェクトを収集してウェーブとして扱う
 
-                GameObject newEnemy = Instantiate(enemyPrefab, targetPos, Quaternion.identity, transform);
-
-                // 体力（HP）の設定
-                EnemyStatus status = newEnemy.GetComponent<EnemyStatus>();
-                if (status != null)
-                {
-                    status.randomizeHPOnStart = false; // 自動スケール値を優先するため自律ランダムは無効化
-                    status.SetMaxHP(enemyHP); // ★修正：最大HPと現在HP、スライダーを確実に同期
-                }
-
-                // 攻撃力（DamageReceiver）の設定
-                DamageReceiver receiver = newEnemy.GetComponentInChildren<DamageReceiver>();
-                if (receiver == null) receiver = newEnemy.GetComponent<DamageReceiver>();
-                if (receiver != null)
-                {
-                    receiver.AttackDamage = enemyAttackDamage;
-                }
-
-                // NavMeshAgentがある場合、NavMesh上の最も近い位置にスナップさせて不具合を防ぐ
-                UnityEngine.AI.NavMeshAgent agent = newEnemy.GetComponent<UnityEngine.AI.NavMeshAgent>();
-                if (agent != null)
-                {
-                    UnityEngine.AI.NavMeshHit hit;
-                    if (UnityEngine.AI.NavMesh.SamplePosition(targetPos, out hit, 15.0f, UnityEngine.AI.NavMesh.AllAreas))
-                    {
-                        newEnemy.transform.position = hit.position;
-                    }
-                }
-
-                enemyGroup.Add(newEnemy);
-                newEnemy.SetActive(false); // スポナーのウェーブ順次出現ロジックに任せるため一旦非アクティブにする
-            }
-        }
-        else
-        {
-            // プレハブが指定されていない場合は、従来通り配置済みの子オブジェクトを収集して配置する
             foreach (Transform child in transform)
             {
                 enemyGroup.Add(child.gameObject);
@@ -192,7 +121,7 @@ public class EnemySpawner : MonoBehaviour
 
                 child.gameObject.SetActive(false);
             }
-        }
+
         
         // GameManager が存在しない場合は自動的に開始する
         if (GameManager.instance == null)
