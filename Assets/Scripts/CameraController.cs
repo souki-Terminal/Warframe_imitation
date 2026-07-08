@@ -74,8 +74,8 @@ public class CameraController : MonoBehaviour
     {
         if (player == null) return;
         
-        // プレイヤー位置の補間（カメラのガタつき防止）
-        smoothedPlayerPos = Vector3.Lerp(smoothedPlayerPos, player.transform.position + targetOffset, Time.deltaTime * 15f);
+        // プレイヤー位置を直接取得（Lerpだと物理挙動とズレてガタつく原因になるため直接追従）
+        smoothedPlayerPos = player.transform.position + targetOffset;
         Vector3 playerLookPos = smoothedPlayerPos;
 
         if (lockOnTarget != null)
@@ -119,27 +119,29 @@ public class CameraController : MonoBehaviour
             Vector3 dir = new Vector3(0, 0, -distance);
             Quaternion rotation = Quaternion.Euler(currentY, currentX, 0);
             
-            transform.position = Vector3.Lerp(transform.position, playerLookPos + rotation * dir, Time.deltaTime * 15f);
+            // Lerp をやめて直接設定することでガタつきを無くす
+            transform.position = playerLookPos + rotation * dir;
             transform.LookAt(playerLookPos);
         }
     }
 
     void FindNearestEnemy()
     {
-        // 現在シーン内の敵を取得
-        EnemyStatus[] enemies = FindObjectsByType<EnemyStatus>(FindObjectsSortMode.None);
         float nearestDist = lockOnRange;
         Transform nearestObj = null;
 
-        foreach (EnemyStatus enemy in enemies)
+        Collider[] hitColliders = Physics.OverlapSphere(player.transform.position, lockOnRange);
+        foreach (var hitCollider in hitColliders)
         {
-            if (!enemy.gameObject.activeInHierarchy || enemy.CurrentHP <= 0) continue;
-
-            float dist = Vector3.Distance(player.transform.position, enemy.transform.position);
-            if (dist < nearestDist)
+            EnemyStatus enemy = hitCollider.GetComponentInParent<EnemyStatus>();
+            if (enemy != null && enemy.gameObject.activeInHierarchy && enemy.CurrentHP > 0)
             {
-                nearestDist = dist;
-                nearestObj = enemy.transform;
+                float dist = Vector3.Distance(player.transform.position, enemy.transform.position);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearestObj = enemy.transform;
+                }
             }
         }
         lockOnTarget = nearestObj;

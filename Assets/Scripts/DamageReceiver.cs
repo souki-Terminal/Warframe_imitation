@@ -34,8 +34,11 @@ public class DamageReceiver : MonoBehaviour
             direction.y = 0;
             if (direction.sqrMagnitude <= 0.001f)
             {
-                Debug.LogError("[DamageReceiver] プレイヤーへのノックバック方向が計算できませんでした！仮の方向(Z軸)を使用します。");
-                direction = Vector3.forward;
+                // 完全に位置が重なっている場合の安全なフォールバック
+                // 攻撃側が向いている方向へ吹き飛ばす
+                direction = transform.forward;
+                direction.y = 0;
+                if (direction.sqrMagnitude <= 0.001f) direction = Vector3.forward;
             }
             direction.Normalize();
 

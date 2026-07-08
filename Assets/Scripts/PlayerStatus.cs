@@ -39,9 +39,17 @@ public class PlayerStatus : MonoBehaviour
         TakeDamage(damage, Vector3.zero);
     }
 
+    [Header("防御関連")]
+    // 鉄壁の守りレベルに応じて軽減（1レベル10%）
+    public float damageReduction => PlayerPowerUps.instance != null ? PlayerPowerUps.instance.ironDefenseLevel * 0.1f : 0f;
+
     public void TakeDamage(int damage, Vector3 knockbackDirection, float knockbackDist = 3.0f, float knockbackDur = 0.2f)
     {
         if (currentHP <= 0) return;
+
+        // ダメージ軽減処理 (被ダメージ軽減のパワーアップ対応)
+        // （拡張性を残すための変数。現状はそのままのダメージが入るか、外部から操作される）
+        int finalDamage = Mathf.Max(1, Mathf.RoundToInt(damage * (1.0f - damageReduction)));
 
         if (knockbackDirection.sqrMagnitude > 0.001f)
         {
@@ -52,8 +60,14 @@ public class PlayerStatus : MonoBehaviour
             Debug.LogError("[PlayerStatus] ノックバック方向ベクトルが小さすぎるためノックバックしませんでした。");
         }
 
-        currentHP -= damage;
+        currentHP -= finalDamage;
         UpdateUI();
+
+        // ダメージテキストの表示（プレイヤーは赤色）
+        if (DamageTextManager.instance != null)
+        {
+            DamageTextManager.instance.ShowDamageText(transform.position + Vector3.up * 1.5f, finalDamage, false, true);
+        }
 
         if (currentHP <= 0)
         {
@@ -106,6 +120,34 @@ public class PlayerStatus : MonoBehaviour
         }
     }
 
+    public void RecalculateMaxHP()
+    {
+        if (PlayerPowerUps.instance == null) return;
+        
+        // 体力レベルアップごとに×5
+        int multiplier = 1;
+        for (int i = 0; i < PlayerPowerUps.instance.healthLevel; i++) multiplier *= 5;
+
+        int newMaxHP = 400 * multiplier; // 初期体力400想定
+        int diff = newMaxHP - maxHP;
+        
+        if (diff > 0)
+        {
+            maxHP = newMaxHP;
+            currentHP += diff; // 上限が増えた分だけ現在HPも回復
+            UpdateUI();
+        }
+    }
+
+    public void RecalculateSpeedAndJump()
+    {
+        if (core == null || PlayerPowerUps.instance == null) return;
+
+        // 移動速度：レベル1で×2、レベル2で×3、レベル3で×4
+        int speedMultiplier = PlayerPowerUps.instance.moveSpeedLevel + 1;
+        core.speed = 5.0f * speedMultiplier; // 初期速度5想定
+    }
+
     public void HealAndBuffMaxHP(int amount)
     {
         maxHP += amount;
@@ -121,7 +163,7 @@ public class PlayerStatus : MonoBehaviour
     }
 
     // UI（バーと数値）を同時に更新する便利な処理
-    private void UpdateUI()
+    public void UpdateUI()
     {
         if (hpSlider != null) hpSlider.value = currentHP;
         

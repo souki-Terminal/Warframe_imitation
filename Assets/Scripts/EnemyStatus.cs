@@ -106,15 +106,30 @@ public class EnemyStatus : MonoBehaviour
         }
 
         // スポーンした瞬間にGameManagerに「敵が増えた」と報告
-        if (GameManager.instance != null) GameManager.instance.AddEnemyCount();
+        if (GameManager.instance != null) 
+        {
+            GameManager.instance.AddEnemyCount();
+            hasBeenCounted = true;
+        }
     }
 
-   public void TakeDamage(int damage)
+    private bool hasBeenCounted = false;
+
+    private void OnDestroy()
     {
-        TakeDamage(damage, Vector3.zero);
+        // Spawnerによって間引かれるなど、倒される前に削除された場合の補正
+        if (hasBeenCounted && currentHP > 0 && GameManager.instance != null)
+        {
+            GameManager.instance.RemoveEnemyCount();
+        }
     }
 
-    public void TakeDamage(int damage, Vector3 knockbackDirection, float knockbackDist = 3.0f, float knockbackDur = 0.2f)
+   public void TakeDamage(int damage, bool isCritical = false)
+    {
+        TakeDamage(damage, Vector3.zero, 3.0f, 0.2f, isCritical);
+    }
+
+    public void TakeDamage(int damage, Vector3 knockbackDirection, float knockbackDist = 3.0f, float knockbackDur = 0.2f, bool isCritical = false)
     {
         if (currentHP <= 0) return;
 
@@ -129,6 +144,12 @@ public class EnemyStatus : MonoBehaviour
 
         currentHP -= damage;
         UpdateUI();
+        
+        // ダメージテキストの表示
+        if (DamageTextManager.instance != null)
+        {
+            DamageTextManager.instance.ShowDamageText(transform.position + Vector3.up * 1.5f, damage, isCritical, false);
+        }
 
         // アニメーターを取得（モデルが子オブジェクトにある場合も考慮）
         Animator anim = GetComponentInChildren<Animator>();
@@ -214,4 +235,72 @@ public class EnemyStatus : MonoBehaviour
     }
 
     // 敵が消滅（Destroy）した瞬間に呼ばれる
+    private float cutTimer = 0f;
+    private int cutLevel = 0;
+    private Coroutine cutCoroutine;
+
+    public void ApplyCut(int level)
+    {
+        if (level <= 0 || currentHP <= 0) return;
+        cutLevel = level;
+        cutTimer += 5f; // ヒット数に応じて効果秒数が増える
+        if (cutCoroutine == null)
+        {
+            cutCoroutine = StartCoroutine(CutRoutine());
+        }
+    }
+
+    private System.Collections.IEnumerator CutRoutine()
+    {
+        while (cutTimer > 0 && currentHP > 0)
+        {
+            yield return new WaitForSeconds(1f);
+            cutTimer -= 1f;
+            
+            // 4%にレベルアップごとの20%上昇を加算。MaxHPの割合とする。
+            float multiplier = 1f + 0.2f * (cutLevel - 1);
+            int damage = Mathf.Max(1, Mathf.RoundToInt(maxHP * 0.04f * multiplier));
+            
+            TakeDamage(damage, false); // 継続ダメージ
+        }
+        cutCoroutine = null;
+    }
+
+    private float slowTimer = 0f;
+    private int slowLevel = 0;
+    private Coroutine slowCoroutine;
+    private float originalSpeed = -1f;
+
+    public void ApplySlow(int level)
+    {
+        if (level <= 0 || currentHP <= 0 || core == null) return;
+        slowLevel = level;
+        slowTimer = level >= 5 ? 20f : 10f; // MAXで20秒間停止
+        
+        if (originalSpeed < 0) originalSpeed = core.speed;
+        
+        if (slowCoroutine == null)
+        {
+            slowCoroutine = StartCoroutine(SlowRoutine());
+        }
+    }
+
+    private System.Collections.IEnumerator SlowRoutine()
+    {
+        while (slowTimer > 0 && currentHP > 0)
+        {
+            float slowRate = slowLevel >= 5 ? 1f : (0.2f * slowLevel); // MAXは100%遅延（停止）
+            core.speed = originalSpeed * (1f - slowRate);
+            
+            yield return null;
+            slowTimer -= Time.deltaTime;
+        }
+        
+        if (core != null && originalSpeed >= 0)
+        {
+            core.speed = originalSpeed;
+            originalSpeed = -1f;
+        }
+        slowCoroutine = null;
+    }
 }

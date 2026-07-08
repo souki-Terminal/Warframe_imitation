@@ -77,11 +77,49 @@ public class EnemySpawner : MonoBehaviour
 
         Debug.Log($"[{gameObject.name}] Level {level} Configured -> HP: {enemyHP}, DMG: {enemyAttackDamage}");
 
-        // 手動で配置済みの子オブジェクトを収集してウェーブとして扱う
+        // ウェーブごとの敵の数（Lv1: 4, Lv2: 3, Lv3: 2, Lv4以降: 1）
+        int targetCount = Mathf.Max(1, 5 - level);
 
+        GameObject baseEnemy = null;
+        if (transform.childCount > 0)
+        {
+            baseEnemy = transform.GetChild(0).gameObject;
+        }
+
+        if (baseEnemy != null)
+        {
+            List<GameObject> existingChildren = new List<GameObject>();
             foreach (Transform child in transform)
             {
-                enemyGroup.Add(child.gameObject);
+                existingChildren.Add(child.gameObject);
+            }
+
+            // 必要な数だけ敵を用意する
+            for (int i = 0; i < targetCount; i++)
+            {
+                GameObject enemyObj;
+                if (i < existingChildren.Count)
+                {
+                    enemyObj = existingChildren[i];
+                }
+                else
+                {
+                    enemyObj = Instantiate(baseEnemy, transform);
+                }
+                enemyGroup.Add(enemyObj);
+            }
+
+            // 余分な子オブジェクトは削除する
+            for (int i = targetCount; i < existingChildren.Count; i++)
+            {
+                Destroy(existingChildren[i]);
+            }
+        }
+
+        // 決定した敵グループに対して設定を行う
+        foreach (GameObject childObj in enemyGroup)
+        {
+            Transform child = childObj.transform;
 
                 // 体力の設定
                 EnemyStatus status = child.GetComponent<EnemyStatus>();
@@ -232,10 +270,10 @@ public class EnemySpawner : MonoBehaviour
             {
                 // LiberationSans SDF などのデフォルトフォントでの文字化け（□表示）を防ぐため、
                 // ゲーム画面内の通知は英語で送信します。
-                string uiMsg = "Wave Cleared! Player Buffed!";
+                string uiMsg = "ウェーブクリア！";
                 if (playerWeapon != null)
                 {
-                    uiMsg += $"\nWeapon Damage Upgraded! (Now: {playerWeapon.damage})";
+                    uiMsg += $"\n武器のダメージが強化されました！ (現在: {playerWeapon.damage})";
                 }
                 GameManager.instance.ShowNotification(uiMsg);
                 GameManager.instance.OnSpawnerCleared(this);

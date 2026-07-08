@@ -13,8 +13,9 @@ public class PowerUpManager : MonoBehaviour
     public class PowerUpItem
     {
         public string title;
-        public string description;
-        public System.Action applyEffect;
+        public System.Func<int, string> getDescription;
+        public System.Func<bool> canUpgrade;
+        public System.Action<int> applyEffect;
     }
 
     private List<PowerUpItem> allPowerUps;
@@ -25,49 +26,87 @@ public class PowerUpManager : MonoBehaviour
         allPowerUps = new List<PowerUpItem>
         {
             new PowerUpItem { 
-                title = "体力上限突破", 
-                description = "最大HPが50増加します", 
-                applyEffect = () => { 
-                    PlayerStatus p = FindFirstObjectByType<PlayerStatus>(); 
-                    if(p != null) p.HealAndBuffMaxHP(50); 
-                } 
+                title = "切断", 
+                getDescription = (boost) => $"5秒間継続ダメージを与える（レベルアップで威力上昇）。\n現在Lv: {PlayerPowerUps.instance.cutLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.cutLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.cutLevel = Mathf.Min(3, PlayerPowerUps.instance.cutLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                }
             },
             new PowerUpItem { 
-                title = "神速の脚", 
-                description = "移動速度が少し上がります", 
-                applyEffect = () => { 
-                    CharacterCore c = FindFirstObjectByType<CharacterCore>(); 
-                    if(c != null) c.speed += 1.5f; 
-                } 
+                title = "爆発", 
+                getDescription = (boost) => $"ヒット時に周囲の敵へダメージ（レベルアップで威力上昇）。\n現在Lv: {PlayerPowerUps.instance.explosionLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.explosionLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.explosionLevel = Mathf.Min(3, PlayerPowerUps.instance.explosionLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                }
             },
             new PowerUpItem { 
-                title = "軽業師", 
-                description = "ジャンプ力が増加します", 
-                applyEffect = () => { 
-                    CharacterCore c = FindFirstObjectByType<CharacterCore>(); 
-                    if(c != null) c.jumpForce += 2.0f; 
-                } 
+                title = "遅延", 
+                getDescription = (boost) => $"10秒間相手の動きを遅くする（LvMAXで停止）。\n現在Lv: {PlayerPowerUps.instance.slowLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.slowLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.slowLevel = Mathf.Min(3, PlayerPowerUps.instance.slowLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                }
             },
             new PowerUpItem { 
-                title = "完全回復", 
-                description = "HPが最大まで回復します", 
-                applyEffect = () => { 
-                    PlayerStatus p = FindFirstObjectByType<PlayerStatus>(); 
-                    if(p != null) p.HealToFull(); 
-                } 
+                title = "吸収", 
+                getDescription = (boost) => $"武器ダメージの一部を体力として回復。\n現在Lv: {PlayerPowerUps.instance.lifestealLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.lifestealLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.lifestealLevel = Mathf.Min(3, PlayerPowerUps.instance.lifestealLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                }
             },
             new PowerUpItem { 
-                title = "鋭い一撃", 
-                description = "武器のダメージが追加で10%上昇", 
-                applyEffect = () => { 
-                    Damager w = FindFirstObjectByType<Damager>(); 
-                    if(w != null) w.damage = (int)(w.damage * 1.1f); 
-                } 
+                title = "近接ダメージ上昇", 
+                getDescription = (boost) => $"基礎近接ダメージが上昇。\n現在Lv: {PlayerPowerUps.instance.meleeDamageLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.meleeDamageLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.meleeDamageLevel = Mathf.Min(3, PlayerPowerUps.instance.meleeDamageLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                    Damager w = FindFirstObjectByType<Damager>();
+                    if (w != null) w.RecalculateDamage();
+                }
+            },
+            new PowerUpItem { 
+                title = "体力上昇", 
+                getDescription = (boost) => $"最大体力が上昇。\n現在Lv: {PlayerPowerUps.instance.healthLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.healthLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.healthLevel = Mathf.Min(3, PlayerPowerUps.instance.healthLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                    PlayerStatus p = FindFirstObjectByType<PlayerStatus>();
+                    if (p != null) p.RecalculateMaxHP();
+                }
+            },
+            new PowerUpItem { 
+                title = "移動速度上昇", 
+                getDescription = (boost) => $"移動速度が上昇。\n現在Lv: {PlayerPowerUps.instance.moveSpeedLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.moveSpeedLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.moveSpeedLevel = Mathf.Min(3, PlayerPowerUps.instance.moveSpeedLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                    PlayerStatus p = FindFirstObjectByType<PlayerStatus>();
+                    if (p != null) p.RecalculateSpeedAndJump();
+                }
+            },
+            new PowerUpItem {
+                title = "鉄壁の守り",
+                getDescription = (boost) => $"受けるダメージを軽減します。\n現在Lv: {PlayerPowerUps.instance.ironDefenseLevel} / 3",
+                canUpgrade = () => PlayerPowerUps.instance.ironDefenseLevel < 3,
+                applyEffect = (boost) => {
+                    PlayerPowerUps.instance.ironDefenseLevel = Mathf.Min(3, PlayerPowerUps.instance.ironDefenseLevel + boost);
+                    PlayerPowerUps.instance.UpdatePowerUpUI();
+                }
             }
         };
     }
 
-    public void ShowChoices(int optionsCount)
+    public void ShowChoices(int optionsCount, bool isTypingGame = false, bool isPerfectTyping = false)
     {
         if (GameManager.instance == null) return;
         
@@ -86,8 +125,25 @@ public class PowerUpManager : MonoBehaviour
             return;
         }
 
+        // アップグレード可能なものだけを抽出
+        List<PowerUpItem> availableItems = new List<PowerUpItem>();
+        foreach(var item in allPowerUps)
+        {
+            if (item.canUpgrade())
+            {
+                availableItems.Add(item);
+            }
+        }
+
+        if (availableItems.Count == 0)
+        {
+            // 全て取得済みの場合
+            StartCoroutine(ShowZeroOptionsMessage());
+            return;
+        }
+
         // リストをシャッフルして指定個数だけ取り出す
-        List<PowerUpItem> shuffled = new List<PowerUpItem>(allPowerUps);
+        List<PowerUpItem> shuffled = new List<PowerUpItem>(availableItems);
         for (int i = 0; i < shuffled.Count; i++)
         {
             PowerUpItem temp = shuffled[i];
@@ -97,18 +153,51 @@ public class PowerUpManager : MonoBehaviour
         }
 
         int count = Mathf.Min(optionsCount, shuffled.Count);
+
+        // タイピング完全成功の場合は必ず1つはLv3を出現させる
+        int guaranteedLv3Index = -1;
+        if (isPerfectTyping && count > 0)
+        {
+            guaranteedLv3Index = Random.Range(0, count);
+        }
+
         for (int i = 0; i < count; i++)
         {
             PowerUpItem item = shuffled[i];
+            
+            // レベルブーストの抽選
+            int levelBoost = 1;
+            if (i == guaranteedLv3Index)
+            {
+                levelBoost = 3;
+            }
+            else
+            {
+                float rand = Random.value;
+                float chanceLv2 = isTypingGame ? 0.15f : 0.05f;
+                float chanceLv3 = isTypingGame ? 0.15f : 0.05f;
+
+                if (rand < chanceLv3)
+                {
+                    levelBoost = 3;
+                }
+                else if (rand < chanceLv3 + chanceLv2)
+                {
+                    levelBoost = 2;
+                }
+            }
+
             GameObject btnObj = Instantiate(powerUpButtonPrefab, buttonsContainer);
             
             // ボタンのテキスト設定 (タイトルと説明)
             TextMeshProUGUI[] texts = btnObj.GetComponentsInChildren<TextMeshProUGUI>();
-            if (texts.Length > 0) texts[0].text = item.title;
-            if (texts.Length > 1) texts[1].text = item.description;
+            string titleWithBoost = levelBoost > 1 ? $"{item.title} <color=#FFD700>(+Lv{levelBoost})</color>" : item.title;
+            if (texts.Length > 0) texts[0].text = titleWithBoost;
+            if (texts.Length > 1) texts[1].text = item.getDescription(levelBoost);
 
             Button btn = btnObj.GetComponent<Button>();
-            btn.onClick.AddListener(() => OnPowerUpSelected(item));
+            int capturedBoost = levelBoost;
+            btn.onClick.AddListener(() => OnPowerUpSelected(item, capturedBoost));
         }
 
         // 最初のボタンを選択状態にする
@@ -122,11 +211,11 @@ public class PowerUpManager : MonoBehaviour
         GameManager.instance.ProceedToNextWave();
     }
 
-    private void OnPowerUpSelected(PowerUpItem item)
+    private void OnPowerUpSelected(PowerUpItem item, int levelBoost)
     {
         // 効果適用
-        item.applyEffect?.Invoke();
-        GameManager.instance.ShowNotification($"{item.title} を獲得！");
+        item.applyEffect?.Invoke(levelBoost);
+        GameManager.instance.ShowNotification($"{item.title} (+Lv{levelBoost}) を獲得！");
 
         // 次のウェーブへ
         GameManager.instance.ProceedToNextWave();

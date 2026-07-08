@@ -25,20 +25,39 @@ public class TypingManager : MonoBehaviour
     private int currentKanaIndex = 0;
     private string currentTypedRomaji = "";
 
-    // 5文字の単語リスト（50種類）
-    private string[] wordList = new string[]
+    private List<string> wordList = new List<string>();
+
+    private void Awake()
     {
-        "あまがえる", "いちごあめ", "うさぎごや", "えきまえの", "おにぎりや",
-        "かざぐるま", "きのこがり", "くつしたの", "けのびする", "こいのぼり",
-        "さつまいも", "しあわせな", "すずめばち", "せみしぐれ", "そらまめの",
-        "たからばこ", "ちかてつの", "つきみそば", "てのひらの", "とけいだい",
-        "なかまたち", "にわとりの", "ぬりえかき", "ねずみとり", "のこぎりの",
-        "はまぐりの", "ひまわりの", "ふくろうの", "へびいちご", "ほたるいか",
-        "まちあわせ", "みかづきの", "むらさきの", "めだまやき", "もみじがり",
-        "やまのぼり", "ゆきだるま", "よぞらのえ", "らくがきの", "りすのえさ",
-        "るりまつり", "れきしのえ", "ろうそくの", "わかさぎの", "あさがおの",
-        "おおはしの", "からくりや", "はまかぜの", "まきわりき", "あまぐもの"
-    };
+        GenerateWordList();
+    }
+
+    private void GenerateWordList()
+    {
+        string[] prefixes = new string[] { 
+            "あか", "あお", "しろ", "くろ", "おお", "こ", "やま", "かわ", "うみ", "そら", 
+            "はる", "なつ", "あき", "ふゆ", "あさ", "ひる", "よる", "ほん", "いぬ", "ねこ", 
+            "とり", "さかな", "にく", "やさい", "くるま", "ふね", "まち", "むら", "くに", "ひと", 
+            "いえ", "へや", "まど", "つくえ", "いす", "かばん", "ぼうし", "ふく", "くつ", "とけい",
+            "あめ", "ゆき", "かぜ", "くも", "ほし", "つき", "たいよう", "はな", "き", "くさ"
+        };
+        string[] suffixes = new string[] { 
+            "やま", "かわ", "うみ", "いぬ", "ねこ", "とり", "さかな", "にく", "みず", "おちゃ", 
+            "ごはん", "ぱん", "りんご", "みかん", "ばなな", "ぶどう", "いちご", "すいか", "めろん", "もも", 
+            "なし", "かき", "さくら", "うめ", "きく", "ゆり", "ばら", "ひまわり", "あさがお", "こすもす", 
+            "たんぽぽ", "すみれ", "あじさい", "つばき", "ぼたん", "もみじ", "いちょう", "まつ", "たけ", "かぜ",
+            "いし", "すな", "つち", "みち", "はし", "いえ", "むら", "まち", "えき", "みせ"
+        };
+
+        wordList.Clear();
+        foreach (string p in prefixes)
+        {
+            foreach (string s in suffixes)
+            {
+                wordList.Add(p + s);
+            }
+        }
+    }
 
     private Dictionary<string, string[]> kanaToRomaji = new Dictionary<string, string[]>()
     {
@@ -61,6 +80,17 @@ public class TypingManager : MonoBehaviour
 
     public void StartChallenge()
     {
+        // 背景暗幕の追加（初回のみ）
+        if (GameManager.instance != null && GameManager.instance.typingGamePanel != null)
+        {
+            Image bg = GameManager.instance.typingGamePanel.GetComponent<Image>();
+            if (bg == null)
+            {
+                bg = GameManager.instance.typingGamePanel.AddComponent<Image>();
+                bg.color = new Color(0, 0, 0, 0.85f);
+            }
+        }
+
         currentQuestionIndex = 0;
         correctAnswers = 0;
         isPlaying = true;
@@ -78,7 +108,7 @@ public class TypingManager : MonoBehaviour
         currentQuestionIndex++;
         currentTime = TimeLimit;
         
-        string word = wordList[Random.Range(0, wordList.Length)];
+        string word = wordList[Random.Range(0, wordList.Count)];
         currentHiragana = word;
         currentKanaIndex = 0;
         currentTypedRomaji = "";
@@ -211,7 +241,8 @@ public class TypingManager : MonoBehaviour
         PowerUpManager pm = GetComponent<PowerUpManager>();
         if (pm != null)
         {
-            pm.ShowChoices(powerUpOptions);
+            bool isPerfect = (correctAnswers == MaxQuestions);
+            pm.ShowChoices(powerUpOptions, true, isPerfect);
         }
     }
 }

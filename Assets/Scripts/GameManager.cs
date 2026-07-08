@@ -31,6 +31,12 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         instance = this; 
+        
+        // パワーアップ状態の管理クラスを自動追加（シングルトンとして動作）
+        if (GetComponent<PlayerPowerUps>() == null)
+        {
+            gameObject.AddComponent<PlayerPowerUps>();
+        }
     }
 
     // --- スポナー（ウェーブ）の管理 ---
@@ -140,7 +146,7 @@ public class GameManager : MonoBehaviour
             {
                 string msg = $"次のウェーブを開始します: {spawners[currentSpawnerIndex].name}";
                 Debug.Log(msg);
-                ShowNotification($"Starting Wave: {spawners[currentSpawnerIndex].name}");
+                ShowNotification($"ウェーブ開始: {spawners[currentSpawnerIndex].name}");
                 spawners[currentSpawnerIndex].StartSpawning();
             }
             else
@@ -148,7 +154,7 @@ public class GameManager : MonoBehaviour
                 // すべてのウェーブがクリアされた
                 string msg = "すべてのウェーブがクリアされました！";
                 Debug.Log(msg);
-                ShowNotification("All Waves Cleared!");
+                ShowNotification("全ウェーブクリア！");
                 StartCoroutine(WaitAndClear(1.0f));
             }
         }
@@ -165,6 +171,19 @@ public class GameManager : MonoBehaviour
         go.transform.SetParent(canvas.transform, false);
 
         notificationText = go.AddComponent<TextMeshProUGUI>();
+        notificationText.text = ""; // 「New Text」という初期文字列を消去する
+        
+        // ★修正：確実に「NotoSerifJP」等の日本語フォントを持っているテキストを探して拝借する
+        // ※パネルが非表示（Inactive）の状態でも検索できるように FindObjectsInactive.Include を追加！
+        TextMeshProUGUI[] allTexts = FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var text in allTexts)
+        {
+            if (text.font != null && text.font.name.Contains("NotoSerif"))
+            {
+                notificationText.font = text.font;
+                break;
+            }
+        }
         
         notificationText.fontSize = 28;
         notificationText.fontStyle = FontStyles.Bold;
@@ -234,10 +253,18 @@ public class GameManager : MonoBehaviour
             survivalTime += Time.deltaTime;
         }
 
-        // リザルト画面表示中の選択状態の維持・キー入力処理
+        // 各UIパネル表示中の選択状態の維持・キー入力処理
         if (gameOverUI != null && gameOverUI.activeInHierarchy)
         {
             HandleUIInput(gameOverUI);
+        }
+        else if (typingChoicePanel != null && typingChoicePanel.activeInHierarchy)
+        {
+            HandleUIInput(typingChoicePanel);
+        }
+        else if (powerUpPanel != null && powerUpPanel.activeInHierarchy)
+        {
+            HandleUIInput(powerUpPanel);
         }
     }
 
@@ -310,6 +337,8 @@ public class GameManager : MonoBehaviour
         {
             if (button.gameObject.activeInHierarchy && button.interactable)
             {
+                // 一旦nullを入れることで確実にフォーカスイベントを発火させる
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
                 UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(button.gameObject);
                 lastSelectedUI = button.gameObject;
                 break;
@@ -342,10 +371,21 @@ public class GameManager : MonoBehaviour
         UnityEngine.UI.Button[] buttons = panel.GetComponentsInChildren<UnityEngine.UI.Button>(true);
         foreach (var button in buttons)
         {
+            // ★追加：ベースの画像が真っ黒だとColorTintが乗らないため、ベースを白に変更する
+            UnityEngine.UI.Image img = button.GetComponent<UnityEngine.UI.Image>();
+            if (img != null)
+            {
+                img.color = Color.white;
+            }
+
             var colors = button.colors;
-            // 選択時・ハイライト時がはっきりわかるように鮮やかな色（薄い青色系など）に設定する
-            colors.selectedColor = new Color(0.7f, 0.85f, 1f, 1f);   // 水色
-            colors.highlightedColor = new Color(0.8f, 0.9f, 1f, 1f); // 少し明るい水色
+            // 未選択時は元の黒っぽい色にする
+            colors.normalColor = new Color(0.1f, 0.1f, 0.1f, 1f); 
+            // 選択時・ハイライト時がはっきりわかるように鮮やかな色に設定する
+            colors.selectedColor = new Color(0.2f, 0.6f, 1f, 1f);   // 鮮やかな水色
+            colors.highlightedColor = new Color(0.3f, 0.7f, 1f, 1f); // 少し明るい水色
+            colors.pressedColor = new Color(0.1f, 0.4f, 0.8f, 1f);
+            
             button.colors = colors;
         }
     }
