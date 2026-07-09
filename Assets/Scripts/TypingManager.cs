@@ -75,7 +75,11 @@ public class TypingManager : MonoBehaviour
         {"ざ", new[]{"za"}}, {"じ", new[]{"ji", "zi"}}, {"ず", new[]{"zu"}}, {"ぜ", new[]{"ze"}}, {"ぞ", new[]{"zo"}},
         {"だ", new[]{"da"}}, {"ぢ", new[]{"di"}}, {"づ", new[]{"du"}}, {"で", new[]{"de"}}, {"ど", new[]{"do"}},
         {"ば", new[]{"ba"}}, {"び", new[]{"bi"}}, {"ぶ", new[]{"bu"}}, {"べ", new[]{"be"}}, {"ぼ", new[]{"bo"}},
-        {"ぱ", new[]{"pa"}}, {"ぴ", new[]{"pi"}}, {"ぷ", new[]{"pu"}}, {"ぺ", new[]{"pe"}}, {"ぽ", new[]{"po"}}
+        {"ぱ", new[]{"pa"}}, {"ぴ", new[]{"pi"}}, {"ぷ", new[]{"pu"}}, {"ぺ", new[]{"pe"}}, {"ぽ", new[]{"po"}},
+        {"ん", new[]{"nn", "n"}},
+        {"ぁ", new[]{"xa", "la"}}, {"ぃ", new[]{"xi", "li"}}, {"ぅ", new[]{"xu", "lu"}}, {"ぇ", new[]{"xe", "le"}}, {"ぉ", new[]{"xo", "lo"}},
+        {"ゃ", new[]{"xya", "lya", "ya"}}, {"ゅ", new[]{"xyu", "lyu", "yu"}}, {"ょ", new[]{"xyo", "lyo", "yo"}},
+        {"っ", new[]{"xtu", "ltu", "xtsu", "ltsu"}}, {"ー", new[]{"-"}}
     };
 
     public void StartChallenge()

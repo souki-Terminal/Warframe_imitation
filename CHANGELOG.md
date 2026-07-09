@@ -51,3 +51,10 @@ AIアシスタントがコードを変更した際は、必ずこのファイル
 - DamageTextManager.cs, DamageText.cs: 毎フレームのInstantiate/Destroyによる負荷を避けるため、オブジェクトプールパターン（Object Pooling）を実装しパフォーマンスを最適化。
 - CameraController.cs: ロックオン時の敵検索ロジックを `FindObjectsByType` から `Physics.OverlapSphere` に変更し、無駄な全探索を避けて軽量化。
 - PlayerPowerUps.cs: レベルが3（上限）に達したスキルについて、「Lv3」の表記を赤い「MAX」の表記に変更するUI改修を実施。
+
+## 2026-07-09
+- TypingManager.cs: `kanaToRomaji` ディクショナリに「ん」を追加し、KeyNotFoundExceptionを解消。
+- EnemySpawner.cs: スポナーの子オブジェクトから自動的に敵を Instantiate する処理を削除し、手動で配置された子オブジェクトをそのまま使用するように変更。ウェーブクリア時のプレイヤー強化・回復処理を GameManager 側に移行。
+- GameManager.cs: 最後のウェーブ終了時にタイピング選択画面をスキップしてクリア画面に遷移する処理を追加。また、ウェーブ移行時（ProceedToNextWave）にプレイヤーへの強化（回復、最大体力・攻撃力アップ）と通知表示を行うよう処理を修正。
+- TypingManager.cs: `kanaToRomaji` ディクショナリに「ゃ」「ゅ」「ょ」「っ」などの捨て仮名（小文字）と長音符「ー」を追加し、出題単語にこれらが含まれる際のエラーを修正。
+- EnemyStatus.cs: 切断ダメージなどノックバック方向ベクトルが 0 の攻撃を受けた際に、エラーログ（`Debug.LogError`）を出力しないように修正。

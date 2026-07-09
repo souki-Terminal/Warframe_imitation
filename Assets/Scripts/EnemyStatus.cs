@@ -137,10 +137,6 @@ public class EnemyStatus : MonoBehaviour
         {
             ApplyKnockback(knockbackDirection, knockbackDist, knockbackDur);
         }
-        else
-        {
-            Debug.LogError("[EnemyStatus] ノックバック方向ベクトルが小さすぎるためノックバックしませんでした。");
-        }
 
         currentHP -= damage;
         UpdateUI();
@@ -192,7 +188,6 @@ public class EnemyStatus : MonoBehaviour
         direction.y = 0;
         if (direction.sqrMagnitude <= 0.001f)
         {
-            Debug.LogError("[EnemyStatus] ノックバック方向(水平)が0になったためノックバックしませんでした。");
             return;
         }
 
