@@ -98,6 +98,14 @@ public class GameManager : MonoBehaviour
     public void OnSpawnerCleared(EnemySpawner spawner)
     {
         pendingSpawner = spawner;
+
+        // 最後のウェーブならタイピング・パワーアップ選択を出さずにクリアへ
+        if (currentSpawnerIndex >= spawners.Count - 1)
+        {
+            ProceedToNextWave();
+            return;
+        }
+
         // まず選択肢UIを出す
         if (typingChoicePanel != null)
         {
@@ -144,6 +152,8 @@ public class GameManager : MonoBehaviour
             currentSpawnerIndex++;
             if (currentSpawnerIndex < spawners.Count)
             {
+                ApplyWaveClearBuff();
+
                 string msg = $"次のウェーブを開始します: {spawners[currentSpawnerIndex].name}";
                 Debug.Log(msg);
                 ShowNotification($"ウェーブ開始: {spawners[currentSpawnerIndex].name}");
@@ -158,6 +168,40 @@ public class GameManager : MonoBehaviour
                 StartCoroutine(WaitAndClear(1.0f));
             }
         }
+    }
+
+    private void ApplyWaveClearBuff()
+    {
+        if (pendingSpawner == null) return;
+
+        string msg = "ウェーブクリア！プレイヤーを強化します！";
+        Debug.Log(msg);
+
+        if (pendingSpawner.playerStatus != null)
+        {
+            pendingSpawner.playerStatus.HealAndBuffMaxHP(20);
+            pendingSpawner.playerStatus.HealToFull(); 
+        }
+
+        string uiMsg = "ウェーブクリア！";
+
+        if (pendingSpawner.playerWeapon != null)
+        {
+            long nextDamage = (long)pendingSpawner.playerWeapon.damage * 3;
+            if (nextDamage > int.MaxValue - 100000)
+            {
+                pendingSpawner.playerWeapon.damage = int.MaxValue - 100000;
+            }
+            else
+            {
+                pendingSpawner.playerWeapon.damage = (int)nextDamage;
+            }
+            string buffMsg = $"武器のダメージが強化された！ (現在: {pendingSpawner.playerWeapon.damage})";
+            Debug.Log(buffMsg);
+            uiMsg += $"\n武器のダメージが強化されました！ (現在: {pendingSpawner.playerWeapon.damage})";
+        }
+
+        ShowNotification(uiMsg);
     }
 
     private void CreateDynamicNotificationText()

@@ -77,43 +77,10 @@ public class EnemySpawner : MonoBehaviour
 
         Debug.Log($"[{gameObject.name}] Level {level} Configured -> HP: {enemyHP}, DMG: {enemyAttackDamage}");
 
-        // ウェーブごとの敵の数（Lv1: 4, Lv2: 3, Lv3: 2, Lv4以降: 1）
-        int targetCount = Mathf.Max(1, 5 - level);
-
-        GameObject baseEnemy = null;
-        if (transform.childCount > 0)
+        // 最初から子オブジェクトとして配置されている敵を使用する
+        foreach (Transform child in transform)
         {
-            baseEnemy = transform.GetChild(0).gameObject;
-        }
-
-        if (baseEnemy != null)
-        {
-            List<GameObject> existingChildren = new List<GameObject>();
-            foreach (Transform child in transform)
-            {
-                existingChildren.Add(child.gameObject);
-            }
-
-            // 必要な数だけ敵を用意する
-            for (int i = 0; i < targetCount; i++)
-            {
-                GameObject enemyObj;
-                if (i < existingChildren.Count)
-                {
-                    enemyObj = existingChildren[i];
-                }
-                else
-                {
-                    enemyObj = Instantiate(baseEnemy, transform);
-                }
-                enemyGroup.Add(enemyObj);
-            }
-
-            // 余分な子オブジェクトは削除する
-            for (int i = targetCount; i < existingChildren.Count; i++)
-            {
-                Destroy(existingChildren[i]);
-            }
+            enemyGroup.Add(child.gameObject);
         }
 
         // 決定した敵グループに対して設定を行う
@@ -240,42 +207,10 @@ public class EnemySpawner : MonoBehaviour
         if (aliveCount == 0)
         {
             buffApplied = true;
-            string msg = "ウェーブクリア！プレイヤーを強化します！";
-            Debug.Log(msg);
-
-            if (playerStatus != null)
-            {
-                playerStatus.HealAndBuffMaxHP(20);
-                playerStatus.HealToFull(); // ★追加：レベルクリア時に体力を全回復
-            }
-
-            if (playerWeapon != null)
-            {
-                // ★修正：C#のint型オーバーフロー（21億超過によるマイナスバグ）を防ぐための安全なクランプ
-                long nextDamage = (long)playerWeapon.damage * 3;
-                if (nextDamage > int.MaxValue - 100000)
-                {
-                    playerWeapon.damage = int.MaxValue - 100000;
-                }
-                else
-                {
-                    playerWeapon.damage = (int)nextDamage;
-                }
-                string buffMsg = $"武器のダメージが強化された！ (現在: {playerWeapon.damage})";
-                Debug.Log(buffMsg);
-            }
 
             // GameManager にこのウェーブが完了したことを通知する
             if (GameManager.instance != null)
             {
-                // LiberationSans SDF などのデフォルトフォントでの文字化け（□表示）を防ぐため、
-                // ゲーム画面内の通知は英語で送信します。
-                string uiMsg = "ウェーブクリア！";
-                if (playerWeapon != null)
-                {
-                    uiMsg += $"\n武器のダメージが強化されました！ (現在: {playerWeapon.damage})";
-                }
-                GameManager.instance.ShowNotification(uiMsg);
                 GameManager.instance.OnSpawnerCleared(this);
             }
         }
