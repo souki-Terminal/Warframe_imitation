@@ -28,6 +28,10 @@ public class GameManager : MonoBehaviour
     private float survivalTime = 0f;
     private bool isPlayerDead = false;
 
+    // オープンキャンパス向け：パワーアップ権利
+    public int powerUpRights = 0;
+    private int consecutiveKillsForPowerUp = 0;
+
     void Awake()
     {
         instance = this; 
@@ -47,31 +51,43 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        // BGM再生（OpenCampusSpawnerがない場合のみ。ある場合はそちらで制御する）
         gameOverUI.SetActive(false);
         UpdateEnemyCountText();
         Time.timeScale = 1f; 
 
-        // シーン内のすべての EnemySpawner を取得する
-        EnemySpawner[] foundSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
-        spawners = new List<EnemySpawner>(foundSpawners);
-
-        // 敵のレベル名（例: Enemy_Lv1, Enemy_Lv10 等）に含まれる数値でソートする。
-        // 数値が含まれない、または同一の場合は spawnStartTime でソートする。
-        spawners.Sort((a, b) => {
-            int aLv = GetLevelFromName(a.name);
-            int bLv = GetLevelFromName(b.name);
-            if (aLv != bLv)
-            {
-                return aLv.CompareTo(bLv);
-            }
-            return a.spawnStartTime.CompareTo(b.spawnStartTime);
-        });
-
-        // 最初のスポナーを開始する
-        if (spawners.Count > 0)
+        OpenCampusSpawner spawner = FindFirstObjectByType<OpenCampusSpawner>();
+        if (spawner == null)
         {
-            currentSpawnerIndex = 0;
-            spawners[currentSpawnerIndex].StartSpawning();
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayGameBGM();
+
+            // シーン内のすべての EnemySpawner を取得する (OpenCampusSpawnerがない場合のみ)
+            EnemySpawner[] foundSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+            spawners = new List<EnemySpawner>(foundSpawners);
+
+            // 敵のレベル名（例: Enemy_Lv1, Enemy_Lv10 等）に含まれる数値でソートする。
+            // 数値が含まれない、または同一の場合は spawnStartTime でソートする。
+            spawners.Sort((a, b) => {
+                int aLv = GetLevelFromName(a.name);
+                int bLv = GetLevelFromName(b.name);
+                if (aLv != bLv)
+                {
+                    return aLv.CompareTo(bLv);
+                }
+                return a.spawnStartTime.CompareTo(b.spawnStartTime);
+            });
+
+            // 最初のスポナーを開始する
+            if (spawners.Count > 0)
+            {
+                currentSpawnerIndex = 0;
+                spawners[currentSpawnerIndex].StartSpawning();
+            }
+        }
+        else
+        {
+            // OpenCampusSpawnerがある場合は、EnemySpawnerシステムを完全に無効化する
+            spawners = new List<EnemySpawner>();
         }
     }
 
@@ -99,27 +115,8 @@ public class GameManager : MonoBehaviour
     {
         pendingSpawner = spawner;
 
-        // 最後のウェーブならタイピング・パワーアップ選択を出さずにクリアへ
-        if (currentSpawnerIndex >= spawners.Count - 1)
-        {
-            ProceedToNextWave();
-            return;
-        }
-
-        // まず選択肢UIを出す
-        if (typingChoicePanel != null)
-        {
-            Time.timeScale = 0f;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-            typingChoicePanel.SetActive(true);
-            SelectFirstActiveButtonInPanel(typingChoicePanel);
-        }
-        else
-        {
-            // UIが未設定の場合はそのままスキップして次へ
-            ProceedToNextWave();
-        }
+        // オープンキャンパス版：クリア時は選択UIを出さずにすぐ次へ行く
+        ProceedToNextWave();
     }
 
     public void OnTypingChoiceYes()
@@ -173,6 +170,8 @@ public class GameManager : MonoBehaviour
     private void ApplyWaveClearBuff()
     {
         if (pendingSpawner == null) return;
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayWaveClear();
 
         string msg = "ウェーブクリア！プレイヤーを強化します！";
         Debug.Log(msg);
@@ -295,6 +294,17 @@ public class GameManager : MonoBehaviour
         if (!isPlayerDead && Time.timeScale > 0)
         {
             survivalTime += Time.deltaTime;
+        }
+
+        // Qキーによるパワーアップ発動
+        if (Input.GetKeyDown(KeyCode.Q) && powerUpRights > 0 && Time.timeScale > 0)
+        {
+            powerUpRights--;
+            UpdateEnemyCountText();
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            OnTypingChoiceYes();
         }
 
         // 各UIパネル表示中の選択状態の維持・キー入力処理
@@ -489,12 +499,33 @@ public class GameManager : MonoBehaviour
     public void RemoveEnemyCount()
     {
         defeatedEnemyCount++; 
+        
+        // 5体倒すごとにパワーアップ権利獲得
+        consecutiveKillsForPowerUp++;
+        if (consecutiveKillsForPowerUp >= 5)
+        {
+            powerUpRights++;
+            consecutiveKillsForPowerUp -= 5;
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayPowerUpRightGet();
+            ShowNotification("パワーアップ獲得！[Q]キーで発動");
+        }
+
         UpdateEnemyCountText();
+
+        if (defeatedEnemyCount == 5)
+        {
+            OpenCampusSpawner spawner = FindFirstObjectByType<OpenCampusSpawner>();
+            if (spawner != null)
+            {
+                spawner.OnPracticeWaveCleared();
+            }
+        }
 
         if (defeatedEnemyCount >= totalEnemyCount)
         {
             // スポナーが存在しないシーン、またはすでに全スポナーがクリア済みの場合はクリア判定を行う
-            if (spawners == null || spawners.Count == 0 || currentSpawnerIndex >= spawners.Count)
+            // ただし、練習ウェーブ（5体）を倒した直後はまだクリアにしない
+            if (defeatedEnemyCount > 5 && (spawners == null || spawners.Count == 0 || currentSpawnerIndex >= spawners.Count))
             {
                 StartCoroutine(WaitAndClear(1.0f)); 
             }
@@ -509,6 +540,8 @@ public class GameManager : MonoBehaviour
 
     private void GameClear()
     {
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayGameClear();
+
         Time.timeScale = 0f;
         gameOverUI.SetActive(true); 
 
@@ -535,7 +568,7 @@ public class GameManager : MonoBehaviour
     {
         if (enemyCountText != null)
         {
-            enemyCountText.text = "Enemies: " + defeatedEnemyCount + " / " + totalEnemyCount;
+            enemyCountText.text = "Enemies: " + defeatedEnemyCount + " / " + totalEnemyCount + "\n[Q] PowerUps: " + powerUpRights;
         }
     }
 }

@@ -16,6 +16,10 @@ public class TitleManager : MonoBehaviour
 
     void Start()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayTitleBGM();
+        }
         StartCoroutine(SelectDefaultButtonRoutine());
     }
 
@@ -121,6 +125,7 @@ public class TitleManager : MonoBehaviour
     // ボタンから呼び出せるように public をつけます
     public void OnClickStartButton()
     {
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayButtonClick();
         // 設定されたゲームシーン名に合わせて遷移します
         SceneManager.LoadScene(gameSceneName);
     }
@@ -128,6 +133,7 @@ public class TitleManager : MonoBehaviour
     // ゲーム終了ボタン用の処理を追加
     public void OnClickQuitButton()
     {
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayButtonClick();
 #if UNITY_EDITOR
         // エディタ上でのプレイを終了する
         UnityEditor.EditorApplication.isPlaying = false;

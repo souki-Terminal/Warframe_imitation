@@ -13,10 +13,13 @@ public class TypingManager : MonoBehaviour
     public TextMeshProUGUI scoreText;      // 現在の正解数
     public Image timerFill;                // 時間制限バー
 
+    [Header("タイピング設定")]
+    public WordCategory currentCategory = WordCategory.Fish;
+
     private int currentQuestionIndex = 0;
     private int correctAnswers = 0;
-    private const int MaxQuestions = 10;
-    private const float TimeLimit = 10.0f;
+    private const int MaxQuestions = 5;
+    private const float TimeLimit = 5.0f;
     private float currentTime = 0f;
     private bool isPlaying = false;
 
@@ -27,36 +30,61 @@ public class TypingManager : MonoBehaviour
 
     private List<string> wordList = new List<string>();
 
+    private static List<WordCategory> categoryQueue = new List<WordCategory>();
+    private static WordCategory lastPlayedCategory = (WordCategory)(-1); // 未プレイ状態
+
     private void Awake()
     {
-        GenerateWordList();
+        // 以前はここで単語リストを生成していたが、StartChallenge時に生成するように変更
     }
+
+    private void InitializeQueue()
+    {
+        List<WordCategory> allCategories = new List<WordCategory> 
+        { 
+            WordCategory.Fish, WordCategory.Vegetable, WordCategory.Country, WordCategory.Vehicle 
+        };
+
+        // シャッフル
+        for (int i = 0; i < allCategories.Count; i++) 
+        {
+            int r = Random.Range(i, allCategories.Count);
+            var temp = allCategories[i];
+            allCategories[i] = allCategories[r];
+            allCategories[r] = temp;
+        }
+
+        // 可能であれば、前回の最後のカテゴリと今回の最初のカテゴリが被らないように調整
+        if (allCategories.Count > 1 && allCategories[0] == lastPlayedCategory)
+        {
+            var temp = allCategories[0];
+            allCategories[0] = allCategories[1];
+            allCategories[1] = temp;
+        }
+
+        categoryQueue = allCategories;
+    }
+
+    private int typingChallengeCount = 0;
 
     private void GenerateWordList()
     {
-        string[] prefixes = new string[] { 
-            "あか", "あお", "しろ", "くろ", "おお", "こ", "やま", "かわ", "うみ", "そら", 
-            "はる", "なつ", "あき", "ふゆ", "あさ", "ひる", "よる", "ほん", "いぬ", "ねこ", 
-            "とり", "さかな", "にく", "やさい", "くるま", "ふね", "まち", "むら", "くに", "ひと", 
-            "いえ", "へや", "まど", "つくえ", "いす", "かばん", "ぼうし", "ふく", "くつ", "とけい",
-            "あめ", "ゆき", "かぜ", "くも", "ほし", "つき", "たいよう", "はな", "き", "くさ"
-        };
-        string[] suffixes = new string[] { 
-            "やま", "かわ", "うみ", "いぬ", "ねこ", "とり", "さかな", "にく", "みず", "おちゃ", 
-            "ごはん", "ぱん", "りんご", "みかん", "ばなな", "ぶどう", "いちご", "すいか", "めろん", "もも", 
-            "なし", "かき", "さくら", "うめ", "きく", "ゆり", "ばら", "ひまわり", "あさがお", "こすもす", 
-            "たんぽぽ", "すみれ", "あじさい", "つばき", "ぼたん", "もみじ", "いちょう", "まつ", "たけ", "かぜ",
-            "いし", "すな", "つち", "みち", "はし", "いえ", "むら", "まち", "えき", "みせ"
-        };
-
-        wordList.Clear();
-        foreach (string p in prefixes)
+        if (categoryQueue == null || categoryQueue.Count == 0)
         {
-            foreach (string s in suffixes)
-            {
-                wordList.Add(p + s);
-            }
+            InitializeQueue();
         }
+        
+        currentCategory = categoryQueue[0];
+        categoryQueue.RemoveAt(0);
+        lastPlayedCategory = currentCategory;
+        
+        // 強化回数 = タイピングチャレンジに突入した回数
+        int totalEnhancements = typingChallengeCount;
+        
+        wordList = TypingWordProvider.GetWordList(currentCategory, totalEnhancements);
+
+        // 次回のためにカウントを増やす
+        typingChallengeCount++;
     }
 
     private Dictionary<string, string[]> kanaToRomaji = new Dictionary<string, string[]>()
@@ -79,11 +107,32 @@ public class TypingManager : MonoBehaviour
         {"ん", new[]{"nn", "n"}},
         {"ぁ", new[]{"xa", "la"}}, {"ぃ", new[]{"xi", "li"}}, {"ぅ", new[]{"xu", "lu"}}, {"ぇ", new[]{"xe", "le"}}, {"ぉ", new[]{"xo", "lo"}},
         {"ゃ", new[]{"xya", "lya", "ya"}}, {"ゅ", new[]{"xyu", "lyu", "yu"}}, {"ょ", new[]{"xyo", "lyo", "yo"}},
-        {"っ", new[]{"xtu", "ltu", "xtsu", "ltsu"}}, {"ー", new[]{"-"}}
+        {"っ", new[]{"xtu", "ltu", "xtsu", "ltsu"}}, {"ー", new[]{"-"}},
+        // 拗音（2文字）
+        {"きゃ", new[]{"kya"}}, {"きゅ", new[]{"kyu"}}, {"きょ", new[]{"kyo"}},
+        {"しゃ", new[]{"sha", "sya"}}, {"しゅ", new[]{"shu", "syu"}}, {"しょ", new[]{"sho", "syo"}},
+        {"ちゃ", new[]{"cha", "tya", "cya"}}, {"ちゅ", new[]{"chu", "tyu", "cyu"}}, {"ちょ", new[]{"cho", "tyo", "cyo"}},
+        {"にゃ", new[]{"nya"}}, {"にゅ", new[]{"nyu"}}, {"にょ", new[]{"nyo"}},
+        {"ひゃ", new[]{"hya"}}, {"ひゅ", new[]{"hyu"}}, {"ひょ", new[]{"hyo"}},
+        {"みゃ", new[]{"mya"}}, {"みゅ", new[]{"myu"}}, {"みょ", new[]{"myo"}},
+        {"りゃ", new[]{"rya"}}, {"りゅ", new[]{"ryu"}}, {"りょ", new[]{"ryo"}},
+        {"ぎゃ", new[]{"gya"}}, {"ぎゅ", new[]{"gyu"}}, {"ぎょ", new[]{"gyo"}},
+        {"じゃ", new[]{"ja", "zya", "jya"}}, {"じゅ", new[]{"ju", "zyu", "jyu"}}, {"じょ", new[]{"jo", "zyo", "jyo"}},
+        {"ぢゃ", new[]{"dya"}}, {"ぢゅ", new[]{"dyu"}}, {"ぢょ", new[]{"dyo"}},
+        {"びゃ", new[]{"bya"}}, {"びゅ", new[]{"byu"}}, {"びょ", new[]{"byo"}},
+        {"ぴゃ", new[]{"pya"}}, {"ぴゅ", new[]{"pyu"}}, {"ぴょ", new[]{"pyo"}},
+        // 促音（っ＋文字）
+        {"っか", new[]{"kka"}}, {"っき", new[]{"kki"}}, {"っく", new[]{"kku"}}, {"っけ", new[]{"kke"}}, {"っこ", new[]{"kko"}},
+        {"っさ", new[]{"ssa"}}, {"っし", new[]{"sshi", "ssi"}}, {"っす", new[]{"ssu"}}, {"っせ", new[]{"sse"}}, {"っそ", new[]{"sso"}},
+        {"った", new[]{"tta"}}, {"っち", new[]{"cchi", "tti"}}, {"っつ", new[]{"ttsu", "ttu"}}, {"って", new[]{"tte"}}, {"っと", new[]{"tto"}},
+        {"っぱ", new[]{"ppa"}}, {"っぴ", new[]{"ppi"}}, {"っぷ", new[]{"ppu"}}, {"っぺ", new[]{"ppe"}}, {"っぽ", new[]{"ppo"}}
     };
 
     public void StartChallenge()
     {
+        // 毎回お題カテゴリと難易度（強化回数）を再計算して単語リストを取得する
+        GenerateWordList();
+
         // 背景暗幕の追加（初回のみ）
         if (GameManager.instance != null && GameManager.instance.typingGamePanel != null)
         {
@@ -127,6 +176,7 @@ public class TypingManager : MonoBehaviour
         currentTime -= Time.unscaledDeltaTime; 
         if (currentTime <= 0)
         {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayTypingTimeUp();
             NextQuestion();
             return;
         }
@@ -139,7 +189,7 @@ public class TypingManager : MonoBehaviour
             string inputStr = Input.inputString.ToLower();
             foreach (char c in inputStr)
             {
-                if (c >= 'a' && c <= 'z')
+                if ((c >= 'a' && c <= 'z') || c == '-')
                 {
                     ProcessInput(c.ToString());
                 }
@@ -151,7 +201,20 @@ public class TypingManager : MonoBehaviour
     {
         if (currentKanaIndex >= currentHiragana.Length) return;
 
+        int matchLength = 1;
         string currentKana = currentHiragana[currentKanaIndex].ToString();
+
+        // 2文字の組み合わせ（拗音・促音など）を優先してチェック
+        if (currentKanaIndex + 1 < currentHiragana.Length)
+        {
+            string twoChar = currentHiragana.Substring(currentKanaIndex, 2);
+            if (kanaToRomaji.ContainsKey(twoChar))
+            {
+                currentKana = twoChar;
+                matchLength = 2;
+            }
+        }
+
         string[] validPatterns = kanaToRomaji[currentKana];
 
         string testStr = currentTypedRomaji + inputChar;
@@ -175,11 +238,10 @@ public class TypingManager : MonoBehaviour
         if (isFullMatch)
         {
             currentTypedRomaji = "";
-            currentKanaIndex++;
+            currentKanaIndex += matchLength;
             if (currentKanaIndex >= currentHiragana.Length)
             {
-                correctAnswers++;
-                NextQuestion();
+                WordCleared();
             }
             else
             {
@@ -193,6 +255,13 @@ public class TypingManager : MonoBehaviour
         }
     }
 
+    private void WordCleared()
+    {
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayTypingSuccess();
+        correctAnswers++;
+        NextQuestion();
+    }
+
     private void UpdateUI()
     {
         if (progressText != null) progressText.text = $"問題: {currentQuestionIndex} / {MaxQuestions}";
@@ -203,9 +272,21 @@ public class TypingManager : MonoBehaviour
         if (wordText != null) wordText.text = $"<color=#888888>{typedKana}</color>{untypedKana}";
 
         string displayRomaji = "";
-        for (int i = 0; i < currentHiragana.Length; i++)
+        for (int i = 0; i < currentHiragana.Length; )
         {
             string k = currentHiragana[i].ToString();
+            int step = 1;
+
+            if (i + 1 < currentHiragana.Length)
+            {
+                string twoChar = currentHiragana.Substring(i, 2);
+                if (kanaToRomaji.ContainsKey(twoChar))
+                {
+                    k = twoChar;
+                    step = 2;
+                }
+            }
+
             string defaultRomaji = kanaToRomaji[k][0];
             
             if (i < currentKanaIndex)
@@ -226,6 +307,8 @@ public class TypingManager : MonoBehaviour
             {
                 displayRomaji += defaultRomaji;
             }
+            
+            i += step;
         }
         
         if (romajiText != null) romajiText.text = displayRomaji;
@@ -239,8 +322,8 @@ public class TypingManager : MonoBehaviour
             GameManager.instance.typingGamePanel.SetActive(false);
         }
 
-        int powerUpOptions = correctAnswers / 2; 
-        if (powerUpOptions > 5) powerUpOptions = 5;
+        int powerUpOptions = correctAnswers; 
+        if (powerUpOptions > 6) powerUpOptions = 6;
 
         PowerUpManager pm = GetComponent<PowerUpManager>();
         if (pm != null)

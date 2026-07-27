@@ -57,6 +57,7 @@ public class EnemyStatus : MonoBehaviour
             float randomZ = randomizeZ ? Random.Range(randomZRange.x, randomZRange.y) : transform.position.z;
             
             Vector3 targetPos = new Vector3(randomX, transform.position.y, randomZ);
+            Vector3 originalPos = transform.position;
 
             UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent != null)
@@ -69,9 +70,14 @@ public class EnemyStatus : MonoBehaviour
                 if (UnityEngine.AI.NavMesh.SamplePosition(targetPos, out hit, 15.0f, UnityEngine.AI.NavMesh.AllAreas))
                 {
                     targetPos = hit.position;
+                    transform.position = targetPos;
+                }
+                else
+                {
+                    // ランダム座標がNavMesh外だった場合は元の安全な位置に戻す
+                    transform.position = originalPos;
                 }
                 
-                transform.position = targetPos;
                 agent.enabled = agentWasEnabled;
             }
             else
@@ -110,6 +116,34 @@ public class EnemyStatus : MonoBehaviour
         {
             GameManager.instance.AddEnemyCount();
             hasBeenCounted = true;
+        }
+
+        // ★追加：他の敵同士の当たり判定（物理的衝突）を無視する設定
+        // 敵同士が密集した際にコライダーが重なり、物理エンジンの反発力で彼方へ弾き飛ばされる（消滅・テレポートする）バグを根本から防ぐ
+        Collider[] myCols = GetComponentsInChildren<Collider>();
+        EnemyStatus[] allEnemies = FindObjectsByType<EnemyStatus>(FindObjectsSortMode.None);
+        foreach (EnemyStatus otherEnemy in allEnemies)
+        {
+            if (otherEnemy != this)
+            {
+                Collider[] otherCols = otherEnemy.GetComponentsInChildren<Collider>();
+                foreach (Collider myCol in myCols)
+                {
+                    foreach (Collider otherCol in otherCols)
+                    {
+                        Physics.IgnoreCollision(myCol, otherCol, true);
+                    }
+                }
+            }
+        }
+    }
+
+    void Update()
+    {
+        // ステージから落下した（あるいは吹っ飛んだ）敵を即死させるゴリ押し対策
+        if (currentHP > 0 && transform.position.y < -10f)
+        {
+            TakeDamage(maxHP); 
         }
     }
 
@@ -153,6 +187,7 @@ public class EnemyStatus : MonoBehaviour
 
         if (currentHP <= 0)
         {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayEnemyDefeat();
             currentHP = 0; 
             UpdateUI();
 

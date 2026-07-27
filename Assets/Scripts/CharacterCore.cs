@@ -91,6 +91,12 @@ public class CharacterCore : MonoBehaviour
                 {
                     anim.ResetTrigger("Attack");
                     anim.SetTrigger("Attack");
+                    
+                    // ★追加：プレイヤーの攻撃時にボイスを再生
+                    if (AudioManager.Instance != null && GetComponent<PlayerStatus>() != null)
+                    {
+                        AudioManager.Instance.PlayAttackVoice();
+                    }
                 }
                 isAttackTriggered = false; 
             }
@@ -130,37 +136,53 @@ public class CharacterCore : MonoBehaviour
             // 敵（NavMeshAgentを持つキャラクター）の場合は、Rigidbodyがあっても必ずNavMeshの制御（Transform移動）を優先する
             if (rb != null && !rb.isKinematic && agent == null)
             {
+                // ★修正：プレイヤーのノックバック時の壁抜け防止
+                // 体の中心（少し上）からノックバック方向にレイを飛ばし、障害物があるかチェック
+                if (Physics.Raycast(rb.position + Vector3.up * 0.5f, knockbackDirection, out RaycastHit hit, moveDist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                {
+                    // 障害物にぶつかる手前（0.3f）で移動を止める
+                    float safeDist = Mathf.Max(0f, hit.distance - 0.3f);
+                    moveStep = knockbackDirection * safeDist;
+                    
+                    // 壁にぶつかったらノックバックを終了させる
+                    knockbackDistanceRemaining = 0f;
+                    knockbackTimer = 0f;
+                }
+                
                 rb.MovePosition(rb.position + moveStep);
-                // Debug.Log($"[Knockback] (Rigidbody) Timer: {knockbackTimer:F3}, Move: {moveStep}, Pos: {rb.position}");
             }
             else
             {
-                Vector3 prevPos = transform.position;
-                Vector3 nextPos = transform.position + moveStep;
-                UnityEngine.AI.NavMeshHit hit;
-                
-                if (UnityEngine.AI.NavMesh.Raycast(transform.position, nextPos, out hit, UnityEngine.AI.NavMesh.AllAreas))
+                if (agent != null && agent.isOnNavMesh)
                 {
-                    nextPos = hit.position;
+                    // agent.Moveを使用することでNavMesh上から外れる（床抜け・壁抜け）のを防ぐ
+                    agent.Move(moveStep);
                 }
                 else
                 {
-                    if (UnityEngine.AI.NavMesh.SamplePosition(nextPos, out hit, 0.5f, UnityEngine.AI.NavMesh.AllAreas))
+                    Vector3 prevPos = transform.position;
+                    Vector3 nextPos = transform.position + moveStep;
+                    UnityEngine.AI.NavMeshHit hit;
+                    
+                    if (UnityEngine.AI.NavMesh.Raycast(transform.position, nextPos, out hit, UnityEngine.AI.NavMesh.AllAreas))
                     {
-                        nextPos.y = hit.position.y;
+                        nextPos = hit.position;
                     }
+                    else
+                    {
+                        if (UnityEngine.AI.NavMesh.SamplePosition(nextPos, out hit, 0.5f, UnityEngine.AI.NavMesh.AllAreas))
+                        {
+                            nextPos.y = hit.position.y;
+                        }
+                    }
+                    transform.position = nextPos;
+                    // Debug.Log($"[Knockback] (Transform) Timer: {knockbackTimer:F3}, Move: {moveStep}, Pos: {prevPos} -> {transform.position}");
                 }
-                transform.position = nextPos;
-                // Debug.Log($"[Knockback] (Transform) Timer: {knockbackTimer:F3}, Move: {moveStep}, Pos: {prevPos} -> {transform.position}");
             }
 
             if (knockbackTimer <= 0f)
             {
                 knockbackDistanceRemaining = 0f;
-                if (agent != null && !agent.enabled)
-                {
-                    agent.enabled = true;
-                }
             }
         }
 
@@ -313,10 +335,10 @@ public class CharacterCore : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
         }
 
-        // 敵（NavMeshAgent）の場合、ノックバック中の座標移動を邪魔させないため一時的に無効化する
+        // 敵（NavMeshAgent）の場合、ノックバック中の移動をNavMeshAgent.Moveで行うため、パスをリセットして通常移動を止める
         if (agent != null && agent.enabled)
         {
-            agent.enabled = false;
+            agent.ResetPath();
         }
     }
 

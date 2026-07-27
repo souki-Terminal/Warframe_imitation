@@ -213,8 +213,17 @@ public class PowerUpManager : MonoBehaviour
 
     private void OnPowerUpSelected(PowerUpItem item, int levelBoost)
     {
+        if (AudioManager.Instance != null) AudioManager.Instance.PlayPowerUpGet();
         // 効果適用
         item.applyEffect?.Invoke(levelBoost);
+        
+        // ★追加：パワーアップ取得時に体力を50回復
+        PlayerStatus playerStatus = FindFirstObjectByType<PlayerStatus>();
+        if (playerStatus != null)
+        {
+            playerStatus.Heal(50);
+        }
+
         GameManager.instance.ShowNotification($"{item.title} (+Lv{levelBoost}) を獲得！");
 
         // 次のウェーブへ

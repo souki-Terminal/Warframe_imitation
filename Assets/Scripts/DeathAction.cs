@@ -28,30 +28,7 @@ public class DeathAction : MonoBehaviour
 
         if (anim != null)
         {
-            // ★追加：デスアニメーションのルートモーションがキャラクターを床下に沈める（床抜けする）のを防ぐため、一時的にルートモーションをオフにする
-            anim.applyRootMotion = false;
-
-            // ★追加：死亡アニメーションへのスムーズな遷移と、死亡後に攻撃等のアニメーションが上書き再生されるのを防ぐため、パラメータをリセットする
-            foreach (AnimatorControllerParameter param in anim.parameters)
-            {
-                if (param.type == AnimatorControllerParameterType.Bool)
-                {
-                    anim.SetBool(param.name, false);
-                }
-                else if (param.type == AnimatorControllerParameterType.Trigger)
-                {
-                    anim.ResetTrigger(param.name);
-                }
-                else if (param.type == AnimatorControllerParameterType.Float)
-                {
-                    anim.SetFloat(param.name, 0f);
-                }
-                else if (param.type == AnimatorControllerParameterType.Int)
-                {
-                    anim.SetInteger(param.name, 0);
-                }
-            }
-
+            // 死亡アニメーションを再生
             if (useTrigger) anim.SetTrigger(dieParameterName);
             else anim.SetBool(dieParameterName, true);
         }
@@ -71,72 +48,23 @@ public class DeathAction : MonoBehaviour
         EnemyStatus enemyStatus = GetComponent<EnemyStatus>();
         if (enemyStatus != null) enemyStatus.enabled = false;
 
-        // --- 床抜け防止とプレイヤーとの衝突無視を設定 ---
-        // 物理演算（重力）をオンにしてしまうと、コライダーのサイズやアニメーションとの兼ね合いで床抜け（すり抜け）が発生しやすいため、
-        // アニメーションによる倒れ込み（キネマティックな状態）を維持します。
+        // --- 床抜け防止 ---
         Rigidbody myRb = GetComponentInChildren<Rigidbody>();
         if (myRb != null)
         {
             myRb.linearVelocity = Vector3.zero;
             myRb.angularVelocity = Vector3.zero;
-            myRb.isKinematic = true; // ★修正：床抜けを防ぐため、キネマティックのままにする
-            myRb.useGravity = false; // ★修正：重力をオフにする
+            myRb.isKinematic = true; 
+            myRb.useGravity = false; 
         }
 
         // 自身のすべてのコライダーを取得
         Collider[] cols = GetComponentsInChildren<Collider>();
-
-        // プレイヤーとの衝突を無視
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player == null) player = GameObject.Find("unitychan");
-        if (player != null)
-        {
-            Collider[] playerCols = player.GetComponentsInChildren<Collider>();
-            foreach (var myCol in cols)
-            {
-                foreach (var playerCol in playerCols)
-                {
-                    Physics.IgnoreCollision(myCol, playerCol, true);
-                }
-            }
-        }
-
-        // 他の敵との衝突も無視
-        EnemyStatus[] allEnemies = FindObjectsByType<EnemyStatus>(FindObjectsSortMode.None);
-        foreach (var otherEnemy in allEnemies)
-        {
-            if (otherEnemy.gameObject == gameObject) continue;
-            Collider[] otherCols = otherEnemy.GetComponentsInChildren<Collider>();
-            foreach (var myCol in cols)
-            {
-                foreach (var otherCol in otherCols)
-                {
-                    Physics.IgnoreCollision(myCol, otherCol, true);
-                }
-            }
-        }
-
-        // 接地・物理衝突用のメインコライダー（CapsuleColliderなど）を特定する
-        Collider mainCol = GetComponentInChildren<CapsuleCollider>();
-        if (mainCol == null) mainCol = GetComponent<Collider>();
-        if (mainCol == null && cols.Length > 0)
-        {
-            mainCol = cols[0];
-        }
-
         foreach (var c in cols)
         {
-            if (c == mainCol)
-            {
-                // メインコライダーは有効のまま、サイズも縮小しない（床抜けを完璧に防ぐため）
-                c.enabled = true;
-                c.isTrigger = false;
-            }
-            else
-            {
-                // それ以外のサブコライダー（手足、武器など）は無効化
-                c.enabled = false;
-            }
+            // 死亡した敵に攻撃が当たらないようにするため、すべてのコライダーを無効化する
+            // （Rigidbodyをキネマティックにして重力も切っているため、床抜けはしません）
+            c.enabled = false;
         }
 
         if (destroyOnDeath)
@@ -146,8 +74,8 @@ public class DeathAction : MonoBehaviour
     }
     private IEnumerator DestroyRoutine()
     {
-        // ★修正：インスペクター設定でディレイが0秒など極端に短い値になっていても、死亡モーションが正しく再生されるよう最低1.5秒の猶予を保証する
-        float delay = Mathf.Max(destroyDelay, 1.5f);
+        // ★修正：死亡モーションが確実に最後まで見れるように、長めのディレイを設定（最低でも2.5秒）
+        float delay = Mathf.Max(destroyDelay, 2.5f);
         yield return new WaitForSeconds(delay);
         Destroy(gameObject);
     }

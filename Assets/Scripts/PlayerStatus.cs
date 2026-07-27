@@ -34,6 +34,27 @@ public class PlayerStatus : MonoBehaviour
         UpdateUI();
     }
 
+    void Update()
+    {
+        // どうしても落ちてしまった時用のフェイルセーフ（高さ座標 -10 基準）
+        if (transform.position.y < -10f)
+        {
+            // ノックバック中などに落ちた可能性もあるため、物理速度をリセット
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+            }
+            if (core != null)
+            {
+                // CharacterCore内のノックバック状態も強制解除
+                core.TriggerKnockback(Vector3.forward, 0f, 0f);
+            }
+            
+            // 指定された 0, 10, 0 にワープする
+            transform.position = new Vector3(0f, 10f, 0f);
+        }
+    }
+
     public void TakeDamage(int damage)
     {
         TakeDamage(damage, Vector3.zero);
@@ -62,6 +83,12 @@ public class PlayerStatus : MonoBehaviour
 
         currentHP -= finalDamage;
         UpdateUI();
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayEnemyHit();
+            AudioManager.Instance.PlayDamageVoice();
+        }
 
         // ダメージテキストの表示（プレイヤーは赤色）
         if (DamageTextManager.instance != null)
@@ -160,6 +187,19 @@ public class PlayerStatus : MonoBehaviour
     {
         currentHP = maxHP;
         UpdateUI();
+    }
+
+    // ★追加：指定した量だけ体力を回復する
+    public void Heal(int amount)
+    {
+        currentHP += amount;
+        if (currentHP > maxHP) currentHP = maxHP;
+        UpdateUI();
+        
+        if (DamageTextManager.instance != null)
+        {
+            DamageTextManager.instance.ShowDamageText(transform.position + Vector3.up * 1.5f, amount, false, true); // 緑色など回復エフェクト用があればベターですが、現状のもので流用
+        }
     }
 
     // UI（バーと数値）を同時に更新する便利な処理

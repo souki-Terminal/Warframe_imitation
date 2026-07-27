@@ -18,9 +18,21 @@ public class PlayerControllerReal : MonoBehaviour
         }
     }
 
+    private bool IsGrounded()
+    {
+        // 足元から少し上から下に向かってレイを飛ばし、地面に接地しているか判定
+        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.3f);
+    }
+
     void Update()
     {
         if (core == null) return;
+
+        // 接地している場合はジャンプボイスのフラグをリセット
+        if (IsGrounded() && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ResetJumpVoice();
+        }
 
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
@@ -70,6 +82,7 @@ public class PlayerControllerReal : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
         {
             core.TriggerJump();
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayJumpVoice();
         }
     }
 }

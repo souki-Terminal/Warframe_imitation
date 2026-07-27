@@ -58,6 +58,13 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
+        // ★追加：OpenCampusSpawnerが存在する場合は、EnemySpawnerの処理を完全に停止する（競合バグ防止）
+        if (FindFirstObjectByType<OpenCampusSpawner>() != null)
+        {
+            enabled = false;
+            return;
+        }
+
         // スポナーの名前からレベル数を取得（例: Enemy_Lv50 -> 50）
         int level = GetLevelFromName(gameObject.name);
 

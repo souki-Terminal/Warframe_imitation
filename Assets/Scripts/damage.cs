@@ -16,6 +16,13 @@ public class Damager : MonoBehaviour
     [Tooltip("敵のノックバックにかかる時間（秒）")]
     public float knockbackDuration = 0.2f;
 
+    private System.Collections.Generic.HashSet<EnemyStatus> hitEnemiesInCurrentSwing = new System.Collections.Generic.HashSet<EnemyStatus>();
+
+    public void ClearHitList()
+    {
+        hitEnemiesInCurrentSwing.Clear();
+    }
+
     public void RecalculateDamage()
     {
         if (PlayerPowerUps.instance == null) return;
@@ -36,8 +43,9 @@ public class Damager : MonoBehaviour
     {
         // 敵へのダメージ判定のみ実行
         EnemyStatus enemy = other.GetComponentInParent<EnemyStatus>();
-        if (enemy != null)
+        if (enemy != null && !hitEnemiesInCurrentSwing.Contains(enemy))
         {
+            hitEnemiesInCurrentSwing.Add(enemy);
             // プレイヤーの正面方向をノックバック方向とする（正面が取得できない場合は敵との相対位置から計算）
             Vector3 knockbackDir = Vector3.zero;
             Transform playerRoot = transform.root;
@@ -70,6 +78,7 @@ public class Damager : MonoBehaviour
             int finalDamage = isCritical ? Mathf.RoundToInt(damage * criticalMultiplier) : damage;
 
             enemy.TakeDamage(finalDamage, knockbackDir, knockbackDistance, knockbackDuration, isCritical);
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayPlayerHit();
             Debug.Log($"敵に {finalDamage} のダメージ！(クリティカル: {isCritical}) ノックバック方向: {knockbackDir}, 距離: {knockbackDistance}");
 
             if (PlayerPowerUps.instance != null)
@@ -107,11 +116,13 @@ public class Damager : MonoBehaviour
                     float explosionRadius = 5f; // 固定の爆発半径
 
                     Collider[] colliders = Physics.OverlapSphere(enemy.transform.position, explosionRadius);
+                    System.Collections.Generic.HashSet<EnemyStatus> hitEnemies = new System.Collections.Generic.HashSet<EnemyStatus>();
                     foreach (Collider col in colliders)
                     {
                         EnemyStatus targetEnemy = col.GetComponentInParent<EnemyStatus>();
-                        if (targetEnemy != null && targetEnemy != enemy && targetEnemy.CurrentHP > 0)
+                        if (targetEnemy != null && targetEnemy != enemy && targetEnemy.CurrentHP > 0 && !hitEnemies.Contains(targetEnemy))
                         {
+                            hitEnemies.Add(targetEnemy);
                             targetEnemy.TakeDamage(explosionDamage, false);
 
                             // 爆発の副次的ダメージにも属性(切断・遅延)を付与する（吸収は付与しない）

@@ -68,10 +68,10 @@ public class WeaponAnimationEvent : MonoBehaviour
 
             if (!isAttackingState)
             {
-                if (attackCollider.enabled)
-                {
-                    Debug.Log($"[WeaponAnimationEvent] 攻撃ステートではないため、UpdateでコライダーをOFFにしました！ 現在のステート名がないか確認してください。");
-                }
+                // if (attackCollider.enabled)
+                // {
+                //     Debug.Log($"[WeaponAnimationEvent] 攻撃ステートではないため、UpdateでコライダーをOFFにしました！ 現在のステート名がないか確認してください。");
+                // }
                 attackCollider.enabled = false;
             }
         }
@@ -81,6 +81,11 @@ public class WeaponAnimationEvent : MonoBehaviour
     public void OnColliderAttack()
     {
         Debug.Log($"[WeaponAnimationEvent] OnColliderAttack 呼ばれました！ (GameObject: {gameObject.name})");
+        if (isPlayerWeapon && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayPlayerSwing();
+            AudioManager.Instance.PlayAttackVoice();
+        }
         if (disableCoroutine != null)
         {
             StopCoroutine(disableCoroutine);
@@ -89,6 +94,8 @@ public class WeaponAnimationEvent : MonoBehaviour
         if (attackCollider != null)
         {
             attackCollider.enabled = true;
+            Damager damager = attackCollider.GetComponent<Damager>();
+            if (damager != null) damager.ClearHitList();
             Debug.Log($"[WeaponAnimationEvent] コライダーをONにしました。 現在のステート: {(anim.GetCurrentAnimatorClipInfo(0).Length > 0 ? anim.GetCurrentAnimatorClipInfo(0)[0].clip.name : "不明")}");
         }
     }

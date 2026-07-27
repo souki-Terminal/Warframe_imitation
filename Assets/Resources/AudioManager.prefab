@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2150116265605054770
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3143660286252350758}
+  - component: {fileID: 5230546145298730608}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3143660286252350758
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2150116265605054770}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5230546145298730608
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2150116265605054770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bd84444b2e15604ebe7ec9d7ecc3074, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  bgmVolume: 1
+  seVolume: 1
+  voiceVolume: 1
+  bgmTitle: {fileID: 8300000, guid: 5bb76ce39257c3543b9f4b521315a0de, type: 3}
+  bgmGame: {fileID: 8300000, guid: 5b5221f0581a37849b062e8687121a69, type: 3}
+  bgmClear: {fileID: 8300000, guid: c0171b8130d2ddd46ac52718a0a1e2b7, type: 3}
+  sePlayerSwing: {fileID: 8300000, guid: 919b9bf617d44194da663702f513abc7, type: 3}
+  sePlayerHit: {fileID: 8300000, guid: 3d591dbfc9e53ee46a7e99dc3680ebb0, type: 3}
+  seEnemyHit: {fileID: 8300000, guid: cbdea7dac6561b1458957694d97bdfb3, type: 3}
+  seEnemyDefeat: {fileID: 8300000, guid: 8e214625e10280c4a97785df749b390f, type: 3}
+  seWaveClear: {fileID: 8300000, guid: aaa7bfd6844caf344b056e108f0d4e5f, type: 3}
+  seTypingSuccess: {fileID: 8300000, guid: 083e7f4c33060f24794a158aa63e12f9, type: 3}
+  seTypingMiss: {fileID: 8300000, guid: c514726ab0c8d664a83d62fc83b9b52e, type: 3}
+  seTypingTimeUp: {fileID: 8300000, guid: 978f9face76addc48b216160d204ebc4, type: 3}
+  sePowerUpRightGet: {fileID: 8300000, guid: 58e7ac0f852ec4946b9fee8bd8202bde, type: 3}
+  sePowerUpGet: {fileID: 8300000, guid: 0f9917eb181aa684f87874ebf39af666, type: 3}
+  seGameClear: {fileID: 8300000, guid: bf71b1284f124e345ab4da1df6022e07, type: 3}
+  seButtonClick: {fileID: 8300000, guid: 4d07599e0e329ce40b24615f49ee52a6, type: 3}
+  voiceDamage:
+  - {fileID: 8300000, guid: c0cc9bb81e32248d7b64b27359c13a43, type: 3}
+  - {fileID: 8300000, guid: 23e7ee0c4720c4bd48c405abb4ffa7f2, type: 3}
+  - {fileID: 8300000, guid: 14442038946004af3aaf906b64944b5f, type: 3}
+  - {fileID: 8300000, guid: 60e04cb188aff4081a59ce70a1ff20c9, type: 3}
+  - {fileID: 8300000, guid: 8b022f05317f74c7384d83d079aa4428, type: 3}
+  voiceJump:
+  - {fileID: 8300000, guid: eed2451bbd4264da8b6c27c92df62faf, type: 3}
+  - {fileID: 8300000, guid: 6ccbc3d284bd849d49fb1f8f94ab2888, type: 3}
+  voiceAttack:
+  - {fileID: 8300000, guid: 93544ae23f04c47b682e4c22db4335b8, type: 3}
+  - {fileID: 8300000, guid: aee940efac05040fbb88af335ec14145, type: 3}
